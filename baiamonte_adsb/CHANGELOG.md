@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2
+
+- Accepts RainViewer's current alphanumeric radar-frame identifiers so precipitation tiles render on dashboards and TV displays.
+- Redesigns the ADS-B TV display to match the AIS TV layout, with a large live map and a compact list of the ten nearest aircraft.
+
 ## 1.3.1
 
 - Proxies and caches OpenStreetMap tiles through the app so TV and kiosk browsers reliably render the basemap.
