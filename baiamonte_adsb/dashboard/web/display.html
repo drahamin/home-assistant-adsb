@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#050505">
   <title>Baiamonte Airspace</title>
   <link rel="stylesheet" href="display.css">
+  <link rel="stylesheet" href="display-board.css?v=102">
 </head>
 <body>
   <main>
@@ -13,15 +14,22 @@
       <div class="identity"><img src="brand-icon.png" alt=""><span><small>TENUTA BAIAMONTE</small><strong>Estate airspace</strong></span></div>
       <div class="readout"><span><small>AIRCRAFT</small><strong id="aircraft-count">0</strong></span><span><small>POSITIONED</small><strong id="positioned-count">0</strong></span><span><small>RECEIVER</small><strong id="receiver-state">Starting</strong></span><i id="receiver-light"></i></div>
     </header>
-    <section class="map" id="map">
-      <div class="grid"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="axis horizontal"></div><div class="axis vertical"></div><div class="sweep"></div>
-      <div class="estate" id="estate"><span>◆</span><b>Tenuta Baiamonte</b></div>
-      <div class="empty" id="empty"><b>Scanning the sky above Mount Etna</b><span>Live aircraft appear as ADS-B positions arrive.</span></div>
-      <div class="north">N</div>
-      <div class="range">LOCAL ADS-B · 1090 MHz</div>
-    </section>
+    <div class="airspace-board">
+      <section class="map" id="map">
+        <div class="grid"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="axis horizontal"></div><div class="axis vertical"></div><div class="sweep"></div>
+        <div class="estate" id="estate"><span>◆</span><b>Tenuta Baiamonte</b></div>
+        <div class="empty" id="empty"><b>Scanning the sky above Mount Etna</b><span>Live aircraft appear as ADS-B positions arrive.</span></div>
+        <div class="north">N</div>
+        <div class="range">LOCAL ADS-B · 1090 MHz</div>
+      </section>
+      <aside class="flight-board">
+        <div class="board-title"><span><small>LIVE CONTACTS</small><strong>Aircraft in view</strong></span><b id="board-count">0</b></div>
+        <div class="flight-list" id="flight-list"></div>
+        <div class="board-note">Freshest receiver contacts · automatic updates</div>
+      </aside>
+    </div>
     <footer><span id="location">Mount Etna · Sicily</span><span id="updated">Waiting for receiver</span></footer>
   </main>
-  <script src="display.js"></script>
+  <script src="display.js?v=102"></script>
 </body>
 </html>

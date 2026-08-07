@@ -2,9 +2,9 @@
   "now": 1786125600,
   "messages": 128943,
   "aircraft": [
-    {"hex":"4ca8af","flight":"RYR43ET","lat":37.916,"lon":15.204,"alt_baro":31250,"gs":441,"track":131,"seen":0.4,"messages":1872,"category":"A3"},
-    {"hex":"4d2287","flight":"ITA614","lat":38.142,"lon":14.914,"alt_baro":17600,"gs":312,"track":89,"seen":1.2,"messages":934,"category":"A3"},
-    {"hex":"3c65a7","flight":"DLH7VW","lat":37.684,"lon":14.638,"alt_baro":36500,"gs":468,"track":210,"seen":2.7,"messages":641,"category":"A3"},
-    {"hex":"a12bc4","flight":"N421TB","alt_baro":8900,"gs":142,"track":24,"seen":4.1,"messages":318,"category":"A1"}
+    {"hex":"4ca8af","flight":"RYR43ET","r":"EI-EMN","t":"B738","ownOp":"Ryanair","lat":37.916,"lon":15.204,"alt_baro":31250,"gs":441,"track":131,"seen":0.4,"messages":1872,"category":"A3"},
+    {"hex":"4d2287","flight":"ITA614","r":"9H-ITA","t":"A320","ownOp":"ITA Airways","lat":38.142,"lon":14.914,"alt_baro":17600,"gs":312,"track":89,"seen":1.2,"messages":934,"category":"A3"},
+    {"hex":"3c65a7","flight":"DLH7VW","r":"D-AIVB","t":"A359","ownOp":"Lufthansa","lat":37.684,"lon":14.638,"alt_baro":36500,"gs":468,"track":210,"seen":2.7,"messages":641,"category":"A3"},
+    {"hex":"a12bc4","flight":"N421TB","r":"N421TB","t":"C172","alt_baro":8900,"gs":142,"track":24,"seen":4.1,"messages":318,"category":"A1"}
   ]
 }

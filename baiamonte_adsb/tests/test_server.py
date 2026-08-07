@@ -14,10 +14,13 @@ SPEC.loader.exec_module(dashboard)
 
 class DashboardTests(unittest.TestCase):
     def test_clean_aircraft_normalizes_dump1090_record(self):
-        item = dashboard.clean_aircraft({"hex": "abc123", "flight": " ITA42 ", "alt_baro": 18500, "gs": 310.5})
+        item = dashboard.clean_aircraft({"hex": "abc123", "flight": " ITA42 ", "r": "EI-EMN", "t": "B738", "alt_baro": 18500, "gs": 310.5})
         self.assertEqual(item["flight"], "ITA42")
         self.assertEqual(item["altitude"], 18500)
         self.assertEqual(item["speed"], 310.5)
+        self.assertEqual(item["registration"], "EI-EMN")
+        self.assertEqual(item["aircraft_type"], "B738")
+        self.assertEqual(item["country_code"], "IE")
 
     def test_status_never_exposes_credentials(self):
         old_files = dashboard.AIRCRAFT_FILES

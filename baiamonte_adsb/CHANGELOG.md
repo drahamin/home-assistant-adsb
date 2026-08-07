@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- Adds a Baiamonte aircraft roster beside the TV radar map.
+- Shows country flags, callsign, registration, aircraft type, altitude, speed, and track for recent contacts.
+
 ## 1.0.1
 
 - Adds a fullscreen, map-only estate TV display at `/display`.

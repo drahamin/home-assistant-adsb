@@ -32,6 +32,14 @@ PORTALS = (
     ("RadarBox", "SERVICE_ENABLE_RADARBOX", "RADARBOX_SHARING_KEY"),
     ("ADSBHub", "SERVICE_ENABLE_ADSBHUB", "ADSBHUB_CKEY"),
 )
+REGISTRATION_COUNTRIES = (
+    ("EI-", "IE"), ("9H-", "MT"), ("D-", "DE"), ("I-", "IT"), ("G-", "GB"),
+    ("F-", "FR"), ("N", "US"), ("C-", "CA"), ("PH-", "NL"), ("EC-", "ES"),
+    ("HB-", "CH"), ("OE-", "AT"), ("SE-", "SE"), ("LN-", "NO"), ("OY-", "DK"),
+    ("OH-", "FI"), ("SP-", "PL"), ("CS-", "PT"), ("OO-", "BE"), ("SX-", "GR"),
+    ("TC-", "TR"), ("A6-", "AE"), ("A7-", "QA"), ("HZ-", "SA"), ("JA", "JP"),
+    ("HL", "KR"), ("B-", "CN"), ("VT-", "IN"), ("VH-", "AU"), ("ZK-", "NZ"),
+)
 
 
 def enabled(name: str, default: bool = False) -> bool:
@@ -71,6 +79,10 @@ def clean_aircraft(record: dict) -> dict:
     altitude = record.get("alt_baro", record.get("altitude"))
     if altitude == "ground":
         altitude = 0
+    registration = str(record.get("r", record.get("registration", ""))).strip().upper()
+    country_code = str(record.get("country_code", "")).strip().upper()
+    if len(country_code) != 2:
+        country_code = next((code for prefix, code in REGISTRATION_COUNTRIES if registration.startswith(prefix)), "")
     return {
         "hex": str(record.get("hex", "")).strip(),
         "flight": str(record.get("flight", "")).strip() or "Unidentified",
@@ -82,6 +94,11 @@ def clean_aircraft(record: dict) -> dict:
         "seen": record.get("seen"),
         "messages": record.get("messages", 0),
         "category": record.get("category", ""),
+        "registration": registration,
+        "aircraft_type": str(record.get("t", record.get("type", ""))).strip().upper(),
+        "operator": str(record.get("ownOp", record.get("operator", ""))).strip(),
+        "squawk": str(record.get("squawk", "")).strip(),
+        "country_code": country_code,
     }
 
 
@@ -148,7 +165,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store" if content_type == "application/json" else "public, max-age=300")
+        dynamic = content_type == "application/json" or content_type.startswith("text/html") or "javascript" in content_type
+        self.send_header("Cache-Control", "no-store" if dynamic else "public, max-age=300")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "SAMEORIGIN")
         self.end_headers()
@@ -171,7 +189,7 @@ class Handler(BaseHTTPRequestHandler):
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
         if relative == "display":
             relative = "display.html"
-        if relative not in {"index.html", "app.css", "app.js", "display.html", "display.css", "display.js", "brand-icon.png"}:
+        if relative not in {"index.html", "app.css", "app.js", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
             relative = "index.html"
         target = WEB_ROOT / relative
         try:
