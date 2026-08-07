@@ -1,0 +1,43 @@
+configuration:
+  SERVICE_ENABLE_DUMP1090:
+    name: ADS-B receiver
+    description: Decode aircraft broadcasts from the connected RTL-SDR receiver.
+  SERVICE_ENABLE_PIAWARE:
+    name: FlightAware
+    description: Share received aircraft data with FlightAware.
+  SERVICE_ENABLE_FR24FEED:
+    name: FlightRadar24
+    description: Share received aircraft data with FlightRadar24.
+  SERVICE_ENABLE_HTTP:
+    name: Receiver map
+    description: Run the original dump1090 receiver map in addition to the Baiamonte dashboard.
+  PIAWARE_FEEDER_DASH_ID:
+    name: FlightAware feeder ID
+    description: Unique feeder ID from your FlightAware account.
+  FR24FEED_FR24KEY:
+    name: FlightRadar24 sharing key
+    description: Sharing key supplied by FlightRadar24.
+  ADSBEXCHANGE_UUID:
+    name: ADS-B Exchange UUID
+    description: Receiver UUID assigned by ADS-B Exchange.
+  PLANEFINDER_SHARECODE:
+    name: Plane Finder sharecode
+    description: Sharecode assigned by Plane Finder.
+  HTML_SITE_LAT:
+    name: Receiver latitude
+    description: Use HOMEASSISTANT_LATITUDE to follow the Home Assistant home location.
+  HTML_SITE_LON:
+    name: Receiver longitude
+    description: Use HOMEASSISTANT_LONGITUDE to follow the Home Assistant home location.
+  HTML_SITE_ALT:
+    name: Receiver elevation
+    description: Use HOMEASSISTANT_ELEVATION to follow the Home Assistant elevation.
+network:
+  30001/tcp: TCP raw input
+  30002/tcp: TCP raw output
+  30003/tcp: TCP BaseStation output
+  30004/tcp: TCP Beast input
+  30005/tcp: TCP Beast output
+  8080/tcp: Receiver map
+  8754/tcp: FlightRadar24 status
+  30053/tcp: Plane Finder status

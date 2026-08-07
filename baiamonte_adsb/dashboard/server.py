@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+"""Small, dependency-free status server for the Baiamonte ADS-B ingress UI."""
+
+from __future__ import annotations
+
+import json
+import mimetypes
+import os
+import socket
+import time
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+
+
+WEB_ROOT = Path(__file__).resolve().parent / "web"
+AIRCRAFT_FILES = (
+    Path(os.getenv("BAIAMONTE_AIRCRAFT_JSON", "/run/dump1090-fa/aircraft.json")),
+    Path("/var/run/dump1090-fa/aircraft.json"),
+    Path("/run/dump1090-mutability/aircraft.json"),
+    Path("/var/run/dump1090-mutability/aircraft.json"),
+    Path("/run/readsb/aircraft.json"),
+)
+PORTALS = (
+    ("FlightAware", "SERVICE_ENABLE_PIAWARE", "PIAWARE_FEEDER_DASH_ID"),
+    ("FlightRadar24", "SERVICE_ENABLE_FR24FEED", "FR24FEED_FR24KEY"),
+    ("ADS-B Exchange", "SERVICE_ENABLE_ADSBEXCHANGE", "ADSBEXCHANGE_UUID"),
+    ("Plane Finder", "SERVICE_ENABLE_PLANEFINDER", "PLANEFINDER_SHARECODE"),
+    ("OpenSky", "SERVICE_ENABLE_OPENSKY", "OPENSKY_USERNAME"),
+    ("adsb.fi", "SERVICE_ENABLE_ADSBFI", "ADSBFI_UUID"),
+    ("RadarBox", "SERVICE_ENABLE_RADARBOX", "RADARBOX_SHARING_KEY"),
+    ("ADSBHub", "SERVICE_ENABLE_ADSBHUB", "ADSBHUB_CKEY"),
+)
+
+
+def enabled(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def number(name: str) -> float | None:
+    try:
+        return float(os.getenv(name, ""))
+    except (TypeError, ValueError):
+        return None
+
+
+def tcp_ready(port: int) -> bool:
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.15):
+            return True
+    except OSError:
+        return False
+
+
+def read_aircraft() -> tuple[dict, str | None]:
+    for path in AIRCRAFT_FILES:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(payload, dict):
+                return payload, str(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+    return {"aircraft": [], "now": time.time(), "messages": 0}, None
+
+
+def clean_aircraft(record: dict) -> dict:
+    altitude = record.get("alt_baro", record.get("altitude"))
+    if altitude == "ground":
+        altitude = 0
+    return {
+        "hex": str(record.get("hex", "")).strip(),
+        "flight": str(record.get("flight", "")).strip() or "Unidentified",
+        "lat": record.get("lat"),
+        "lon": record.get("lon"),
+        "altitude": altitude,
+        "speed": record.get("gs", record.get("speed")),
+        "track": record.get("track"),
+        "seen": record.get("seen"),
+        "messages": record.get("messages", 0),
+        "category": record.get("category", ""),
+    }
+
+
+def status_payload() -> dict:
+    raw, source = read_aircraft()
+    records = [clean_aircraft(item) for item in raw.get("aircraft", []) if isinstance(item, dict)]
+    records.sort(key=lambda item: (item["seen"] is None, item["seen"] or 999999))
+    positioned = sum(item["lat"] is not None and item["lon"] is not None for item in records)
+    portals = []
+    for label, flag, credential in PORTALS:
+        is_enabled = enabled(flag, default=flag in {"SERVICE_ENABLE_PIAWARE", "SERVICE_ENABLE_FR24FEED"})
+        portals.append({
+            "name": label,
+            "enabled": is_enabled,
+            "configured": bool(os.getenv(credential, "").strip()) if is_enabled else False,
+        })
+    receiver = enabled("SERVICE_ENABLE_DUMP1090", True)
+    decoder_ready = tcp_ready(30005) or source is not None
+    now = time.time()
+    source_age = None
+    if source:
+        try:
+            source_age = max(0, round(now - Path(source).stat().st_mtime, 1))
+        except OSError:
+            pass
+    return {
+        "generated_at": now,
+        "site": os.getenv("HTML_SITE_NAME", "Tenuta Baiamonte Airspace"),
+        "receiver": {
+            "enabled": receiver,
+            "ready": receiver and decoder_ready,
+            "source_age": source_age,
+            "messages": raw.get("messages", 0),
+            "map_ready": tcp_ready(8080),
+        },
+        "location": {
+            "lat": number("HTML_SITE_LAT"),
+            "lon": number("HTML_SITE_LON"),
+            "alt": number("HTML_SITE_ALT"),
+        },
+        "counts": {"aircraft": len(records), "positioned": positioned},
+        "aircraft": records[:250],
+        "portals": portals,
+    }
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "BaiamonteADS-B/1.0"
+
+    def send_bytes(self, body: bytes, content_type: str, status: int = HTTPStatus.OK) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store" if content_type == "application/json" else "public, max-age=300")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def do_HEAD(self) -> None:
+        self.do_GET()
+
+    def do_GET(self) -> None:
+        path = unquote(urlsplit(self.path).path)
+        if path.rstrip("/").endswith("/api/status") or path == "/api/status":
+            body = json.dumps(status_payload(), separators=(",", ":")).encode()
+            self.send_bytes(body, "application/json")
+            return
+        relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
+        if relative not in {"index.html", "app.css", "app.js", "brand-icon.png"}:
+            relative = "index.html"
+        target = WEB_ROOT / relative
+        try:
+            body = target.read_bytes()
+        except OSError:
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        if content_type.startswith("text/") or content_type == "application/javascript":
+            content_type += "; charset=utf-8"
+        self.send_bytes(body, content_type)
+
+    def log_message(self, template: str, *args: object) -> None:
+        if os.getenv("BAIAMONTE_DASHBOARD_LOG", "").lower() in {"1", "true"}:
+            super().log_message(template, *args)
+
+
+if __name__ == "__main__":
+    port = int(os.getenv("BAIAMONTE_DASHBOARD_PORT", "8099"))
+    server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
+    print(f"Baiamonte ADS-B dashboard listening on {port}", flush=True)
+    server.serve_forever()

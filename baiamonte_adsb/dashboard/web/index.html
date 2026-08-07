@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080706">
+  <title>Baiamonte ADS-B</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true"><defs>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="i-plane" viewBox="0 0 24 24"><path d="m12 2 2 7 7 4v2l-7-2v5l2 2v2l-4-1-4 1v-2l2-2v-5l-7 2v-2l7-4 2-7Z"/></symbol>
+    <symbol id="i-radar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12 18.5 5.5M12 3v2M21 12h-2M12 21v-2M3 12h2"/><circle cx="16.5" cy="8" r="1"/></symbol>
+    <symbol id="i-network" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="m7 11 10-4M7 13l10 4"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M18.2 9A7 7 0 0 0 6.4 6.4L4 9M5.8 15A7 7 0 0 0 17.6 17.6L20 15"/></symbol>
+  </defs></svg>
+  <div class="shell">
+    <aside>
+      <div class="brand"><img src="brand-icon.png" alt=""><span><strong>Baiamonte ADS-B</strong><small>Estate airspace watch</small></span></div>
+      <nav>
+        <button class="nav active" data-page="overview"><svg><use href="#i-grid"/></svg>Overview</button>
+        <button class="nav" data-page="aircraft"><svg><use href="#i-plane"/></svg>Live aircraft <em id="nav-count">0</em></button>
+        <button class="nav" data-page="portals"><svg><use href="#i-network"/></svg>Feeder portals</button>
+      </nav>
+      <div class="estate-note"><i id="side-light"></i><span><b>1090 MHz receiver</b><small id="side-status">Starting the airspace watch</small></span></div>
+    </aside>
+    <main>
+      <header><div><p class="eyebrow">TENUTA BAIAMONTE · AIRSPACE OPERATIONS</p><h1 id="page-title">Aircraft overview</h1></div><div class="header-tools"><span id="last-check">Waiting for receiver</span><button id="refresh"><svg><use href="#i-refresh"/></svg>Refresh</button></div></header>
+      <section class="page active" id="overview">
+        <div class="hero"><div class="hero-copy"><span>BAIAMONTE AIR WATCH · LIVE ADS-B</span><h2>Every aircraft above the estate, in one clear view.</h2><p>Local 1090 MHz broadcasts, receiver health, and feeder network status brought together for quiet, reliable operations.</p><div class="hero-state"><i id="hero-light"></i><b id="hero-status">Connecting to the receiver…</b></div></div><div class="hero-emblem"><img src="brand-icon.png" alt="Baiamonte aviation emblem"></div></div>
+        <div class="summary-strip"><div><small>RECEIVER</small><b id="receiver-status">Starting</b></div><div><small>AIRCRAFT IN VIEW</small><b id="aircraft-count">0 active</b></div><div><small>WITH POSITION</small><b id="positioned-count">0 mapped</b></div><div><small>PORTAL LINKS</small><b id="portal-count">Checking</b></div></div>
+        <div class="overview-grid">
+          <article class="panel map-panel"><div class="panel-head"><div><p>LIVE ESTATE AIRSPACE</p><h3>Aircraft positions</h3></div><span class="live-pill"><i></i>LIVE</span></div><div class="radar-map" id="radar-map"><div class="range-ring one"></div><div class="range-ring two"></div><div class="cross x"></div><div class="cross y"></div><div class="sweep"></div><span class="compass">N</span><div class="map-empty" id="map-empty"><svg><use href="#i-radar"/></svg><b>Scanning above Mount Etna</b><small>Aircraft appear when their broadcasts include a position.</small></div></div><div class="map-footer"><span id="location-label">Loading receiver location…</span><span>Local ADS-B · 1090 MHz</span></div></article>
+          <div class="status-column"><article class="metric-card gold"><span><svg><use href="#i-radar"/></svg></span><div><small>DECODER HEALTH</small><h3 id="decoder-card">Starting</h3><p id="decoder-detail">Waiting for dump1090</p></div></article><article class="metric-card brown"><span><svg><use href="#i-plane"/></svg></span><div><small>LATEST CONTACT</small><h3 id="latest-flight">No aircraft yet</h3><p id="latest-detail">The local sky is clear</p></div></article><article class="metric-card olive"><span><svg><use href="#i-network"/></svg></span><div><small>DATA SHARING</small><h3 id="sharing-card">Checking portals</h3><p>Only enabled networks receive data</p></div></article></div>
+        </div>
+        <div class="lower-grid"><article class="panel"><div class="panel-head"><div><p>RECENT CONTACTS</p><h3>Aircraft nearest in time</h3></div><button class="text-button" data-go="aircraft">View all →</button></div><div id="recent-aircraft" class="recent-list"></div></article><article class="panel"><div class="panel-head"><div><p>FEEDER NETWORK</p><h3>Portal readiness</h3></div><span class="route-icon"><svg><use href="#i-network"/></svg></span></div><div id="portal-summary" class="portal-list"></div></article></div>
+      </section>
+      <section class="page" id="aircraft"><div class="section-head"><div><p>LIVE AIRCRAFT REGISTRY</p><h2>Aircraft in receiver range</h2><span>Callsign, altitude, speed, track, and last signal from dump1090.</span></div><span class="badge" id="aircraft-badge">0 active</span></div><div id="aircraft-grid" class="aircraft-grid"></div></section>
+      <section class="page" id="portals"><div class="section-head"><div><p>MULTI-PORTAL FEEDING</p><h2>Sharing network</h2><span>Enabled services and credential readiness. Secret keys are never displayed.</span></div><span class="badge neutral">Configuration</span></div><div id="portal-grid" class="portal-grid"></div><article class="panel privacy"><span class="route-icon"><svg><use href="#i-network"/></svg></span><div><p>BAIAMONTE DATA POLICY</p><h3>Your keys stay inside Home Assistant</h3><span>This dashboard reports only whether a portal is enabled and configured. It never exposes sharing keys, feeder IDs, UUIDs, or sharecodes.</span></div></article></section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
