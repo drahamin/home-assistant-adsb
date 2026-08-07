@@ -60,6 +60,20 @@ class DashboardTests(unittest.TestCase):
                 dashboard.GPS_LOCATION_FILE = old_file
                 os.environ.pop("GPS_USE_USB", None)
 
+    def test_weather_overlay_is_configurable_per_surface(self):
+        os.environ["WEATHER_OVERLAY_DASHBOARD"] = "false"
+        os.environ["WEATHER_OVERLAY_TV"] = "true"
+        os.environ["WEATHER_OVERLAY_OPACITY"] = "150"
+        try:
+            self.assertFalse(dashboard.weather_config("dashboard")["enabled"])
+            self.assertTrue(dashboard.weather_config("tv")["enabled"])
+            self.assertEqual(dashboard.weather_config("tv")["opacity"], 1.0)
+            self.assertEqual(dashboard.weather_config("tv")["provider"], "RainViewer")
+        finally:
+            os.environ.pop("WEATHER_OVERLAY_DASHBOARD", None)
+            os.environ.pop("WEATHER_OVERLAY_TV", None)
+            os.environ.pop("WEATHER_OVERLAY_OPACITY", None)
+
     def test_status_never_exposes_credentials(self):
         old_files = dashboard.AIRCRAFT_FILES
         with tempfile.TemporaryDirectory() as tmp:
@@ -92,6 +106,7 @@ class DashboardTests(unittest.TestCase):
                 feed = dashboard.aircraft_feed()
                 self.assertEqual(feed["aircraft"][0]["flight"], "RYR43ET")
                 self.assertEqual(feed["nearest_aircraft"][0]["flight"], "RYR43ET")
+                self.assertIn("weather", feed)
                 self.assertNotIn("portals", feed)
                 self.assertNotIn("receiver", feed)
             finally:

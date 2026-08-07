@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+
+- Adds a cached live precipitation radar overlay from RainViewer with Italian radar coverage.
+- Adds separate configuration switches for the operations dashboard and fullscreen TV display.
+- Adds configurable radar opacity, live frame time, graceful fallback, and required weather attribution.
+- Makes the overview map draggable and zoomable with wheel, touch, buttons, and automatic-view reset controls.
+
 ## 1.2.0
 
 - Fixes live aircraft discovery by reading the feeder image's actual dump1090 JSON output.

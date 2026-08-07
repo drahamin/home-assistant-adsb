@@ -1,6 +1,6 @@
 # Baiamonte ADS-B
 
-Baiamonte ADS-B is a fully branded Home Assistant app for receiving local 1090 MHz aircraft broadcasts and sharing them with multiple flight-tracking networks. It keeps the proven multi-portal feeder engine while adding a Tenuta Baiamonte operations dashboard, a live geographic aircraft map, automatic USB GPS location, Home Assistant ingress, and estate-wide visual identity.
+Baiamonte ADS-B is a fully branded Home Assistant app for receiving local 1090 MHz aircraft broadcasts and sharing them with multiple flight-tracking networks. It keeps the proven multi-portal feeder engine while adding a Tenuta Baiamonte operations dashboard, a live geographic aircraft map with optional precipitation radar, automatic USB GPS location, Home Assistant ingress, and estate-wide visual identity.
 
 ## Supported networks
 
@@ -31,7 +31,7 @@ The interface follows the shared Baiamonte operations system used by Baiamonte L
 
 ## Estate TV display
 
-Open `http://HOME_ASSISTANT_IP:8998/display` on a local TV browser for the fullscreen geographic estate aircraft map and its 10 closest positioned aircraft. You can change the host-side port under the app's **Network** section. A credential-free, distance-ranked JSON feed is available at `http://HOME_ASSISTANT_IP:8998/api/aircraft` for another dashboard to consume.
+Open `http://HOME_ASSISTANT_IP:8998/display` on a local TV browser for the fullscreen geographic estate aircraft map and its 10 closest positioned aircraft. Enable **Live rain radar on TV** to place current precipitation over the map. You can change the host-side port under the app's **Network** section. A credential-free, distance-ranked JSON feed is available at `http://HOME_ASSISTANT_IP:8998/api/aircraft` for another dashboard to consume.
 
 ## Credits and licensing
 

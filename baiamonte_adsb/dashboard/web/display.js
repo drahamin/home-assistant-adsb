@@ -5,6 +5,7 @@ const flagFor = code => code && code.length === 2
   ? [...code].map(character => String.fromCodePoint(127397 + character.charCodeAt())).join('')
   : '✈';
 const geoMap = new BaiamonteMap($('#map'));
+const weatherMap = new BaiamonteWeatherMap(geoMap);
 
 $('#display-back').onclick = () => {
   if (history.length > 1) history.back();
@@ -100,6 +101,7 @@ function render(data) {
 
   $$('.plane').forEach(node => node.remove());
   const view = geoMap.render(center, planes);
+  weatherMap.render(view, data.weather);
   addEstateMarker(view, center);
   planes.forEach(item => addAircraftMarker(view, item));
 

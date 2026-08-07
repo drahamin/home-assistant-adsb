@@ -52,6 +52,18 @@ The TV feed contains aircraft observations only and never includes portal keys, 
 
 The geographic background uses OpenStreetMap tiles and therefore requires network access from the browser displaying the dashboard. Aircraft data remains local to the app.
 
+## Live weather radar
+
+The geographic maps can display the latest precipitation radar from RainViewer. RainViewer combines Italian Civil Protection and regional radar sources and covers Sicily. The app caches the current radar frame and respects the provider's current public API limits.
+
+The overview map can be dragged to move around Sicily and zoomed with the mouse wheel or `+` and `−` controls. Select **Reset** to return to the automatic view that fits the receiver and current aircraft. The TV map remains fixed so accidental kiosk input cannot move it.
+
+- **Live rain radar on dashboard** controls the map inside Home Assistant and is enabled by default.
+- **Live rain radar on TV** controls the fullscreen display independently and is disabled by default.
+- **Weather overlay opacity** controls how strongly the radar appears over the Baiamonte basemap.
+
+The browser displaying the map needs internet access to RainViewer. If the weather service is temporarily unavailable, aircraft and the base map continue working normally. Weather radar is informational and must not be used for aviation safety decisions.
+
 ## Data ports
 
 Ports `30001` through `30005` retain standard dump1090 raw, Beast, and BaseStation inputs/outputs. Leave them unpublished unless another trusted receiver or local service needs them.

@@ -23,6 +23,15 @@ configuration:
   GPS_FIX_TIMEOUT:
     name: GPS startup wait
     description: Seconds to wait for the first GPS fix before falling back to the Home Assistant location.
+  WEATHER_OVERLAY_DASHBOARD:
+    name: Live rain radar on dashboard
+    description: Show the latest RainViewer precipitation radar over the geographic aircraft map.
+  WEATHER_OVERLAY_TV:
+    name: Live rain radar on TV
+    description: Show the live precipitation overlay on the fullscreen TV aircraft display.
+  WEATHER_OVERLAY_OPACITY:
+    name: Weather overlay opacity
+    description: Visibility percentage from 10 to 100 for the rain radar layer.
   PIAWARE_FEEDER_DASH_ID:
     name: FlightAware feeder ID
     description: Unique feeder ID from your FlightAware account.

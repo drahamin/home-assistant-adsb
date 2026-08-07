@@ -60,6 +60,21 @@ def number(name: str) -> float | None:
         return None
 
 
+def weather_config(surface: str) -> dict:
+    """Return public, credential-free weather overlay settings for one UI."""
+    variable = "WEATHER_OVERLAY_TV" if surface == "tv" else "WEATHER_OVERLAY_DASHBOARD"
+    try:
+        opacity = max(10, min(100, int(os.getenv("WEATHER_OVERLAY_OPACITY", "55")))) / 100
+    except ValueError:
+        opacity = 0.55
+    return {
+        "enabled": enabled(variable, default=surface == "dashboard"),
+        "provider": "RainViewer",
+        "layer": "precipitation radar",
+        "opacity": opacity,
+    }
+
+
 def current_location() -> dict:
     """Prefer a recent USB GPS fix, then fall back to configured coordinates."""
     if enabled("GPS_USE_USB", True):
@@ -197,6 +212,7 @@ def status_payload() -> dict:
         "counts": {"aircraft": len(records), "positioned": positioned},
         "aircraft": records[:250],
         "portals": portals,
+        "weather": weather_config("dashboard"),
     }
 
 
@@ -212,6 +228,7 @@ def aircraft_feed() -> dict:
         "counts": status["counts"],
         "aircraft": status["aircraft"],
         "nearest_aircraft": nearest,
+        "weather": weather_config("tv"),
     }
 
 
@@ -246,7 +263,7 @@ class Handler(BaseHTTPRequestHandler):
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
         if relative == "display":
             relative = "display.html"
-        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
+        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
             relative = "index.html"
         target = WEB_ROOT / relative
         try:
