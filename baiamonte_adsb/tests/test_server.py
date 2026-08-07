@@ -14,6 +14,12 @@ SPEC.loader.exec_module(dashboard)
 
 
 class DashboardTests(unittest.TestCase):
+    def test_current_rainviewer_hash_path_is_valid(self):
+        self.assertTrue(dashboard.valid_weather_tile_path("v2/radar/25dbbe425e29/256/7/67/48/2/1_1.png"))
+
+    def test_weather_tile_path_rejects_traversal(self):
+        self.assertFalse(dashboard.valid_weather_tile_path("v2/radar/../../options.json"))
+
     def test_feeder_aircraft_json_path_is_supported(self):
         self.assertIn(
             Path("/usr/lib/fr24/public_html/data/aircraft.json"),

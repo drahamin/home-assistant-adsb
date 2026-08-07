@@ -129,6 +129,13 @@ MAP_TILE_PROVIDERS = {
     "dark": "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
     "satellite": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
 }
+WEATHER_TILE_PATTERN = re.compile(
+    r"v2/radar/[A-Za-z0-9_-]+/256/\d+/\d+/\d+/\d+/[\d_]+\.png"
+)
+
+
+def valid_weather_tile_path(path: str) -> bool:
+    return WEATHER_TILE_PATTERN.fullmatch(path) is not None
 
 
 @lru_cache(maxsize=256)
@@ -331,7 +338,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path.startswith("/api/weather-tile/"):
             suffix = path.removeprefix("/api/weather-tile/")
-            if not re.fullmatch(r"v2/radar/\d+/256/\d+/\d+/\d+/\d+/[\d_]+\.png", suffix):
+            if not valid_weather_tile_path(suffix):
                 self.send_error(HTTPStatus.BAD_REQUEST, "Invalid weather tile")
                 return
             try:
