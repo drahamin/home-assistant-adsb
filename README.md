@@ -31,7 +31,7 @@ The interface follows the shared Baiamonte operations system used by Baiamonte L
 
 ## Estate TV display
 
-Open `http://HOME_ASSISTANT_IP:8099/display` on a local TV browser for a fullscreen map containing only the estate receiver, live aircraft, and a compact status line. A credential-free JSON feed is available at `http://HOME_ASSISTANT_IP:8099/api/aircraft` for another dashboard to consume.
+Open `http://HOME_ASSISTANT_IP:TV_PORT/display` on a local TV browser for the fullscreen estate aircraft display. The default `TV_PORT` is `8099`; you can change its host-side value under the app's **Network** section. A credential-free JSON feed is available at `http://HOME_ASSISTANT_IP:TV_PORT/api/aircraft` for another dashboard to consume.
 
 ## Credits and licensing
 

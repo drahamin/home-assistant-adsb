@@ -34,13 +34,15 @@ Obtain credentials directly from each portal. The dashboard deliberately shows o
 ## Interfaces
 
 - Home Assistant ingress on internal port `8099`: branded Baiamonte operations dashboard.
-- Local network `http://HOME_ASSISTANT_IP:8099/display`: fullscreen map-only TV dashboard.
-- Local network `http://HOME_ASSISTANT_IP:8099/api/aircraft`: minimal JSON feed containing receiver position, counts, and current aircraft.
+- Local network `http://HOME_ASSISTANT_IP:TV_PORT/display`: fullscreen TV dashboard.
+- Local network `http://HOME_ASSISTANT_IP:TV_PORT/api/aircraft`: minimal JSON feed containing receiver position, counts, and current aircraft.
 - Optional port `8080`: original receiver map supplied by the feeder image.
 - Optional port `8754`: FlightRadar24 feeder status.
 - Optional port `30053`: Plane Finder feeder status.
 
-Port `8099` is published by default for the estate TV display. The TV feed contains aircraft observations only and never includes portal keys, feeder IDs, UUIDs, or sharecodes. Home Assistant ingress remains available for authenticated operators.
+Port `8099` is published by default for the estate TV display. To use another port, open the app's **Network** section, change the host-side value beside **TV display host port**, save, and restart the app. The container and Home Assistant ingress continue to use internal port `8099`; this is expected. Use the host-side value as `TV_PORT` in the TV URL.
+
+The TV feed contains aircraft observations only and never includes portal keys, feeder IDs, UUIDs, or sharecodes. Home Assistant ingress remains available for authenticated operators.
 
 ## Data ports
 
@@ -62,4 +64,5 @@ The bundled `adsb-hassio-sensors` service publishes feeder health and counters t
 - **Receiver stays on Starting:** confirm the USB stick is visible to Home Assistant, stop any other app using the SDR, and review the app log.
 - **Aircraft appear without positions:** some Mode-S contacts do not provide a locally decoded position; more messages or a suitable receiver location may be required.
 - **Portal says Needs key:** add the matching portal credential and restart the app.
+- **TV port does not appear to change:** only edit the host-side value under **Network**. Internal port `8099` is fixed for Home Assistant ingress. Save the network setting, then restart the app.
 - **Port conflict:** leave optional external ports disabled unless you explicitly need them. The sidebar dashboard works through ingress on its own internal port.

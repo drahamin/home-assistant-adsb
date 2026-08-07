@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4
+
+- Makes Home Assistant resolve the TV display link using the configured host port.
+- Clarifies that the editable TV port is the host-side value under Network while ingress remains on internal port 8099.
+
 ## 1.0.3
 
 - Fixes app option loading so feeder credentials and receiver settings reach every service correctly.

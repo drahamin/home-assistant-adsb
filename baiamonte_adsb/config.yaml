@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 1.0.3
+version: 1.0.4
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -15,6 +15,7 @@ hassio_api: true
 homeassistant_api: true
 ingress: true
 ingress_port: 8099
+webui: "http://[HOST]:[PORT:8099]/display"
 panel_icon: "mdi:airplane-marker"
 panel_title: "ADS-B"
 panel_admin: true
@@ -30,7 +31,7 @@ ports:
   8754/tcp: null
   30053/tcp: null
 ports_description:
-  8099/tcp: "Baiamonte dashboard and fullscreen TV aircraft map"
+  8099/tcp: "TV display host port (internal ingress port remains 8099)"
   30001/tcp: "TCP raw input"
   30002/tcp: "TCP raw output"
   30003/tcp: "TCP BaseStation output"
