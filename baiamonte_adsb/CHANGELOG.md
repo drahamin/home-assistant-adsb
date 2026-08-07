@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3
+
+- Fixes app option loading so feeder credentials and receiver settings reach every service correctly.
+- Prevents malformed environment records from stopping FlightRadar24 and FlightAware during startup.
+
 ## 1.0.2
 
 - Adds a Baiamonte aircraft roster beside the TV radar map.
