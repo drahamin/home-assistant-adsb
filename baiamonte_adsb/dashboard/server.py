@@ -9,10 +9,12 @@ import mimetypes
 import os
 import socket
 import time
+from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+from urllib.request import Request, urlopen
 
 
 WEB_ROOT = Path(__file__).resolve().parent / "web"
@@ -111,6 +113,20 @@ def tcp_ready(port: int) -> bool:
             return True
     except OSError:
         return False
+
+
+@lru_cache(maxsize=256)
+def fetch_map_tile(zoom: int, x: int, y: int) -> bytes:
+    """Fetch and cache an OSM tile for TV browsers that block cross-origin images."""
+    request = Request(
+        f"https://tile.openstreetmap.org/{zoom}/{x}/{y}.png",
+        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.3.1 (+https://github.com/drahamin/home-assistant-adsb)"},
+    )
+    with urlopen(request, timeout=10) as response:
+        body = response.read()
+    if not body.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError("invalid map tile response")
+    return body
 
 
 def read_aircraft() -> tuple[dict, str | None]:
@@ -252,6 +268,19 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = unquote(urlsplit(self.path).path)
+        if path.startswith("/api/map-tile/"):
+            try:
+                _, _, _, zoom_text, x_text, y_file = path.split("/")
+                zoom, x, y = int(zoom_text), int(x_text), int(y_file.removesuffix(".png"))
+                limit = 2 ** zoom
+                if not (0 <= zoom <= 19 and 0 <= x < limit and 0 <= y < limit):
+                    raise ValueError("tile outside supported range")
+                body = fetch_map_tile(zoom, x, y)
+            except (OSError, ValueError):
+                self.send_error(HTTPStatus.BAD_GATEWAY, "Map tile temporarily unavailable")
+                return
+            self.send_bytes(body, "image/png")
+            return
         if path.rstrip("/").endswith("/api/status") or path == "/api/status":
             body = json.dumps(status_payload(), separators=(",", ":")).encode()
             self.send_bytes(body, "application/json")

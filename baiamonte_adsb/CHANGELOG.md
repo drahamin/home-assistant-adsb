@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Proxies and caches OpenStreetMap tiles through the app so TV and kiosk browsers reliably render the basemap.
+
 ## 1.3.0
 
 - Adds a cached live precipitation radar overlay from RainViewer with Italian radar coverage.

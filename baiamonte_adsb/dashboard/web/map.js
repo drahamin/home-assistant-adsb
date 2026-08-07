@@ -177,7 +177,7 @@
           const image = document.createElement('img');
           image.alt = '';
           image.draggable = false;
-          image.src = `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${tileY}.png`;
+          image.src = `api/map-tile/${zoom}/${wrappedX}/${tileY}.png`;
           image.style.left = `${tileX * TILE_SIZE - left}px`;
           image.style.top = `${tileY * TILE_SIZE - top}px`;
           this.tiles.appendChild(image);
