@@ -2,37 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#050505">
-  <title>Baiamonte Airspace</title>
-  <link rel="stylesheet" href="display.css">
-  <link rel="stylesheet" href="display-board.css?v=102">
-  <link rel="stylesheet" href="map-theme.css?v=120">
-  <link rel="stylesheet" href="weather-theme.css?v=130">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1719">
+  <title>Baiamonte ADS-B · TV Map</title>
+  <link rel="stylesheet" href="display.css?v=132">
+  <link rel="stylesheet" href="map-theme.css?v=132">
+  <link rel="stylesheet" href="weather-theme.css?v=132">
 </head>
 <body>
-  <main>
-    <header>
-      <div class="identity"><button class="display-back" id="display-back" type="button">← Back</button><img src="brand-icon.png" alt=""><span><small>TENUTA BAIAMONTE</small><strong>Estate airspace</strong></span></div>
-      <div class="readout"><span><small>AIRCRAFT</small><strong id="aircraft-count">0</strong></span><span><small>POSITIONED</small><strong id="positioned-count">0</strong></span><span><small>RECEIVER</small><strong id="receiver-state">Starting</strong></span><i id="receiver-light"></i></div>
-    </header>
-    <div class="airspace-board">
-      <section class="map" id="map">
-        <div class="grid"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="axis horizontal"></div><div class="axis vertical"></div><div class="sweep"></div>
-        <div class="estate" id="estate"><span>◆</span><b>Tenuta Baiamonte</b></div>
-        <div class="empty" id="empty"><b>Scanning the sky above Mount Etna</b><span>Live aircraft appear as ADS-B positions arrive.</span></div>
-        <div class="north">N</div>
-        <div class="range">LOCAL ADS-B · 1090 MHz</div>
-      </section>
-      <aside class="flight-board">
-        <div class="board-title"><span><small>LIVE CONTACTS</small><strong>Aircraft in view</strong></span><b id="board-count">0</b></div>
-        <div class="flight-list" id="flight-list"></div>
-        <div class="board-note">Freshest receiver contacts · automatic updates</div>
-      </aside>
-    </div>
-    <footer><span id="location">Mount Etna · Sicily</span><span id="updated">Waiting for receiver</span></footer>
+  <main id="tv-shell">
+    <section id="map" class="map" aria-label="Live Baiamonte ADS-B aircraft map">
+      <div id="empty">Scanning the sky above Mount Etna</div>
+    </section>
+    <aside id="fleet" aria-label="Live aircraft list">
+      <header class="fleet-head">
+        <img src="brand-icon.png" alt="">
+        <div><span>TENUTA BAIAMONTE</span><h1>Live aircraft</h1></div>
+        <b id="fleet-count">0</b>
+      </header>
+      <div id="flight-list"></div>
+      <footer><i id="feed-light"></i><span id="feed-status">Connecting to the estate receiver</span></footer>
+    </aside>
   </main>
-  <script src="map.js?v=130"></script>
-  <script src="display.js?v=130"></script>
+  <script src="map.js?v=132"></script>
+  <script src="display.js?v=132"></script>
 </body>
 </html>

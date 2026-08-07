@@ -14,6 +14,14 @@ SPEC.loader.exec_module(dashboard)
 
 
 class DashboardTests(unittest.TestCase):
+    def test_tv_layout_uses_fullscreen_map_and_nearest_aircraft_rail(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        html = (web / "display.html").read_text()
+        script = (web / "display.js").read_text()
+        self.assertIn('id="tv-shell"', html)
+        self.assertIn('id="fleet"', html)
+        self.assertIn("nearest_aircraft", script)
+
     def test_current_rainviewer_hash_path_is_valid(self):
         self.assertTrue(dashboard.valid_weather_tile_path("v2/radar/25dbbe425e29/256/7/67/48/2/1_1.png"))
 
