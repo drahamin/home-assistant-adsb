@@ -34,11 +34,13 @@ Obtain credentials directly from each portal. The dashboard deliberately shows o
 ## Interfaces
 
 - Home Assistant ingress on internal port `8099`: branded Baiamonte operations dashboard.
+- Local network `http://HOME_ASSISTANT_IP:8099/display`: fullscreen map-only TV dashboard.
+- Local network `http://HOME_ASSISTANT_IP:8099/api/aircraft`: minimal JSON feed containing receiver position, counts, and current aircraft.
 - Optional port `8080`: original receiver map supplied by the feeder image.
 - Optional port `8754`: FlightRadar24 feeder status.
 - Optional port `30053`: Plane Finder feeder status.
 
-Assign an external host port in the app's Network section only when direct access is necessary. Home Assistant ingress requires no external port.
+Port `8099` is published by default for the estate TV display. The TV feed contains aircraft observations only and never includes portal keys, feeder IDs, UUIDs, or sharecodes. Home Assistant ingress remains available for authenticated operators.
 
 ## Data ports
 

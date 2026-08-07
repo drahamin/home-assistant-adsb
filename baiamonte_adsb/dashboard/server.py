@@ -128,6 +128,19 @@ def status_payload() -> dict:
     }
 
 
+def aircraft_feed() -> dict:
+    """Return the deliberately small, credential-free feed used by wall displays."""
+    status = status_payload()
+    return {
+        "generated_at": status["generated_at"],
+        "site": status["site"],
+        "receiver_online": status["receiver"]["ready"],
+        "location": status["location"],
+        "counts": status["counts"],
+        "aircraft": status["aircraft"],
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "BaiamonteADS-B/1.0"
 
@@ -151,8 +164,14 @@ class Handler(BaseHTTPRequestHandler):
             body = json.dumps(status_payload(), separators=(",", ":")).encode()
             self.send_bytes(body, "application/json")
             return
+        if path.rstrip("/").endswith("/api/aircraft") or path == "/api/aircraft":
+            body = json.dumps(aircraft_feed(), separators=(",", ":")).encode()
+            self.send_bytes(body, "application/json")
+            return
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
-        if relative not in {"index.html", "app.css", "app.js", "brand-icon.png"}:
+        if relative == "display":
+            relative = "display.html"
+        if relative not in {"index.html", "app.css", "app.js", "display.html", "display.css", "display.js", "brand-icon.png"}:
             relative = "index.html"
         target = WEB_ROOT / relative
         try:

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050505">
+  <title>Baiamonte Airspace</title>
+  <link rel="stylesheet" href="display.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div class="identity"><img src="brand-icon.png" alt=""><span><small>TENUTA BAIAMONTE</small><strong>Estate airspace</strong></span></div>
+      <div class="readout"><span><small>AIRCRAFT</small><strong id="aircraft-count">0</strong></span><span><small>POSITIONED</small><strong id="positioned-count">0</strong></span><span><small>RECEIVER</small><strong id="receiver-state">Starting</strong></span><i id="receiver-light"></i></div>
+    </header>
+    <section class="map" id="map">
+      <div class="grid"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="axis horizontal"></div><div class="axis vertical"></div><div class="sweep"></div>
+      <div class="estate" id="estate"><span>◆</span><b>Tenuta Baiamonte</b></div>
+      <div class="empty" id="empty"><b>Scanning the sky above Mount Etna</b><span>Live aircraft appear as ADS-B positions arrive.</span></div>
+      <div class="north">N</div>
+      <div class="range">LOCAL ADS-B · 1090 MHz</div>
+    </section>
+    <footer><span id="location">Mount Etna · Sicily</span><span id="updated">Waiting for receiver</span></footer>
+  </main>
+  <script src="display.js"></script>
+</body>
+</html>

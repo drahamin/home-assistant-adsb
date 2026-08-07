@@ -29,6 +29,10 @@ See [baiamonte_adsb/DOCS.md](baiamonte_adsb/DOCS.md) for configuration, portal k
 
 The interface follows the shared Baiamonte operations system used by Baiamonte LTE and Baiamonte AIS: volcanic black, warm ivory, estate gold, restrained typography, and operational status views. The aviation emblem is unique to ADS-B while remaining part of the same visual family.
 
+## Estate TV display
+
+Open `http://HOME_ASSISTANT_IP:8099/display` on a local TV browser for a fullscreen map containing only the estate receiver, live aircraft, and a compact status line. A credential-free JSON feed is available at `http://HOME_ASSISTANT_IP:8099/api/aircraft` for another dashboard to consume.
+
 ## Credits and licensing
 
 The feeder runtime is based on Max Winterstein's Home Assistant wrapper and Thom-x's `docker-fr24feed-piaware-dump1090` image. Home Assistant sensor support originates from `adsb-hassio-sensors` by plo53. See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE).

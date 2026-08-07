@@ -33,6 +33,7 @@ configuration:
     name: Receiver elevation
     description: Use HOMEASSISTANT_ELEVATION to follow the Home Assistant elevation.
 network:
+  8099/tcp: Baiamonte dashboard and TV aircraft map
   30001/tcp: TCP raw input
   30002/tcp: TCP raw output
   30003/tcp: TCP BaseStation output

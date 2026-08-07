@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 1.0.0
+version: 1.0.1
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -20,6 +20,7 @@ panel_title: "ADS-B"
 panel_admin: true
 icon: "icon.png"
 ports:
+  8099/tcp: 8099
   30001/tcp: null
   30002/tcp: null
   30003/tcp: null
@@ -29,6 +30,7 @@ ports:
   8754/tcp: null
   30053/tcp: null
 ports_description:
+  8099/tcp: "Baiamonte dashboard and fullscreen TV aircraft map"
   30001/tcp: "TCP raw input"
   30002/tcp: "TCP raw output"
   30003/tcp: "TCP BaseStation output"

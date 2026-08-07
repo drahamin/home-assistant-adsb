@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Adds a fullscreen, map-only estate TV display at `/display`.
+- Adds a minimal credential-free aircraft JSON feed at `/api/aircraft`.
+- Publishes dashboard port 8099 for local-network TV access.
+
 ## 1.0.0
 
 - Introduces the fully branded Tenuta Baiamonte airspace dashboard.

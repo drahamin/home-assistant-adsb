@@ -39,6 +39,20 @@ class DashboardTests(unittest.TestCase):
                 os.environ.pop("FR24FEED_FR24KEY", None)
                 os.environ.pop("SERVICE_ENABLE_FR24FEED", None)
 
+    def test_tv_feed_contains_aircraft_but_no_portal_configuration(self):
+        old_files = dashboard.AIRCRAFT_FILES
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "aircraft.json"
+            path.write_text(json.dumps({"aircraft": [{"hex": "4ca8af", "flight": "RYR43ET", "lat": 37.9, "lon": 15.2}]}))
+            dashboard.AIRCRAFT_FILES = (path,)
+            try:
+                feed = dashboard.aircraft_feed()
+                self.assertEqual(feed["aircraft"][0]["flight"], "RYR43ET")
+                self.assertNotIn("portals", feed)
+                self.assertNotIn("receiver", feed)
+            finally:
+                dashboard.AIRCRAFT_FILES = old_files
+
 
 if __name__ == "__main__":
     unittest.main()
