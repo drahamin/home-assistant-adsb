@@ -100,7 +100,7 @@ function render(data) {
   renderFlightBoard(data.nearest_aircraft?.length ? data.nearest_aircraft : allAircraft);
 
   $$('.plane').forEach(node => node.remove());
-  const view = geoMap.render(center, planes);
+  const view = geoMap.render(center, planes, data.map_style || 'standard');
   weatherMap.render(view, data.weather);
   addEstateMarker(view, center);
   planes.forEach(item => addAircraftMarker(view, item));

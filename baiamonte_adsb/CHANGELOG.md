@@ -3,6 +3,8 @@
 ## 1.3.1
 
 - Proxies and caches OpenStreetMap tiles through the app so TV and kiosk browsers reliably render the basemap.
+- Proxies RainViewer metadata and precipitation tiles through the same local app for reliable TV weather overlays.
+- Adds a settings selector for Standard, Humanitarian, Topographic, Dark, and Satellite base maps.
 
 ## 1.3.0
 
