@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 1.3.0
+version: 1.3.1
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -54,6 +54,7 @@ options:
   WEATHER_OVERLAY_DASHBOARD: true
   WEATHER_OVERLAY_TV: false
   WEATHER_OVERLAY_OPACITY: 55
+  MAP_STYLE: "standard"
   PIAWARE_FEEDER_DASH_ID: ""
   FR24FEED_FR24KEY: ""
   ADSBEXCHANGE_UUID: ""
@@ -77,6 +78,7 @@ schema:
   WEATHER_OVERLAY_DASHBOARD: bool
   WEATHER_OVERLAY_TV: bool
   WEATHER_OVERLAY_OPACITY: int
+  MAP_STYLE: list(standard|humanitarian|topographic|dark|satellite)
   SERVICE_ENABLE_IMPORT_OVER_NETCAT: bool?
   SERVICE_ENABLE_ADSBEXCHANGE: bool?
   SERVICE_ENABLE_PLANEFINDER: bool?

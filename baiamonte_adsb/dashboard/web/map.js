@@ -2,7 +2,7 @@
   const TILE_SIZE = 256;
   const MIN_LATITUDE = -85.05112878;
   const MAX_LATITUDE = 85.05112878;
-  const WEATHER_METADATA_URL = 'https://api.rainviewer.com/public/weather-maps.json';
+  const WEATHER_METADATA_URL = 'api/weather-maps';
   const WEATHER_CACHE_MS = 5 * 60 * 1000;
   let weatherMetadata = null;
   let weatherFetchedAt = 0;
@@ -154,7 +154,7 @@
       return 5;
     }
 
-    render(center, points = []) {
+    render(center, points = [], style = 'standard') {
       const width = this.container.clientWidth || 900;
       const height = this.container.clientHeight || 500;
       const safeCenter = usablePoint(center) ? center : {lat: 37.847, lon: 14.925};
@@ -169,6 +169,8 @@
       const maxX = Math.floor((left + width) / TILE_SIZE);
       const minY = Math.max(0, Math.floor(top / TILE_SIZE));
       const maxY = Math.min(tileCount - 1, Math.floor((top + height) / TILE_SIZE));
+      const safeStyle = ['standard', 'humanitarian', 'topographic', 'dark', 'satellite'].includes(style) ? style : 'standard';
+      this.tiles.dataset.style = safeStyle;
 
       this.tiles.replaceChildren();
       for (let tileY = minY; tileY <= maxY; tileY += 1) {
@@ -177,7 +179,7 @@
           const image = document.createElement('img');
           image.alt = '';
           image.draggable = false;
-          image.src = `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${tileY}.png`;
+          image.src = `api/map-tile/${safeStyle}/${zoom}/${wrappedX}/${tileY}.png`;
           image.style.left = `${tileX * TILE_SIZE - left}px`;
           image.style.top = `${tileY * TILE_SIZE - top}px`;
           this.tiles.appendChild(image);
@@ -259,7 +261,7 @@
               const image = document.createElement('img');
               image.alt = '';
               image.draggable = false;
-              image.src = `${frame.host}${frame.path}/256/${sourceZoom}/${wrappedX}/${tileY}/2/1_1.png`;
+              image.src = `api/weather-tile${frame.path}/256/${sourceZoom}/${wrappedX}/${tileY}/2/1_1.png`;
               image.style.left = `${tileX * renderedTileSize - view.left}px`;
               image.style.top = `${tileY * renderedTileSize - view.top}px`;
               image.style.width = `${renderedTileSize}px`;

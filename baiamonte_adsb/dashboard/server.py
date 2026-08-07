@@ -7,12 +7,15 @@ import json
 import math
 import mimetypes
 import os
+import re
 import socket
 import time
+from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+from urllib.request import Request, urlopen
 
 
 WEB_ROOT = Path(__file__).resolve().parent / "web"
@@ -72,7 +75,13 @@ def weather_config(surface: str) -> dict:
         "provider": "RainViewer",
         "layer": "precipitation radar",
         "opacity": opacity,
+        "map_style": map_style(),
     }
+
+
+def map_style() -> str:
+    style = os.getenv("MAP_STYLE", "standard").strip().lower()
+    return style if style in MAP_TILE_PROVIDERS else "standard"
 
 
 def current_location() -> dict:
@@ -111,6 +120,64 @@ def tcp_ready(port: int) -> bool:
             return True
     except OSError:
         return False
+
+
+MAP_TILE_PROVIDERS = {
+    "standard": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "humanitarian": "https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+    "topographic": "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+    "dark": "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    "satellite": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+}
+
+
+@lru_cache(maxsize=256)
+def fetch_map_tile(style: str, zoom: int, x: int, y: int) -> tuple[bytes, str]:
+    """Fetch and cache an OSM tile for TV browsers that block cross-origin images."""
+    request = Request(
+        MAP_TILE_PROVIDERS[style].format(z=zoom, x=x, y=y),
+        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.3.1 (+https://github.com/drahamin/home-assistant-adsb)"},
+    )
+    with urlopen(request, timeout=10) as response:
+        body = response.read()
+    if body.startswith(b"\x89PNG\r\n\x1a\n"):
+        content_type = "image/png"
+    elif body.startswith(b"\xff\xd8\xff"):
+        content_type = "image/jpeg"
+    else:
+        raise ValueError("invalid map tile response")
+    return body, content_type
+
+
+weather_metadata_cache: dict[str, object] = {"body": None, "expires": 0.0}
+
+
+def fetch_weather_metadata() -> bytes:
+    body = weather_metadata_cache["body"]
+    if isinstance(body, bytes) and time.time() < float(weather_metadata_cache["expires"]):
+        return body
+    request = Request(
+        "https://api.rainviewer.com/public/weather-maps.json",
+        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.3.1"},
+    )
+    with urlopen(request, timeout=10) as response:
+        body = response.read()
+    json.loads(body.decode("utf-8"))
+    weather_metadata_cache.update({"body": body, "expires": time.time() + 300})
+    return body
+
+
+@lru_cache(maxsize=256)
+def fetch_weather_tile(suffix: str) -> bytes:
+    request = Request(
+        f"https://tilecache.rainviewer.com/{suffix}",
+        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.3.1"},
+    )
+    with urlopen(request, timeout=10) as response:
+        body = response.read()
+    if not body.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError("invalid weather tile response")
+    return body
 
 
 def read_aircraft() -> tuple[dict, str | None]:
@@ -213,6 +280,7 @@ def status_payload() -> dict:
         "aircraft": records[:250],
         "portals": portals,
         "weather": weather_config("dashboard"),
+        "map_style": map_style(),
     }
 
 
@@ -229,6 +297,7 @@ def aircraft_feed() -> dict:
         "aircraft": status["aircraft"],
         "nearest_aircraft": nearest,
         "weather": weather_config("tv"),
+        "map_style": map_style(),
     }
 
 
@@ -252,6 +321,39 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = unquote(urlsplit(self.path).path)
+        if path.rstrip("/") == "/api/weather-maps":
+            try:
+                body = fetch_weather_metadata()
+            except (OSError, ValueError):
+                self.send_error(HTTPStatus.BAD_GATEWAY, "Weather radar temporarily unavailable")
+                return
+            self.send_bytes(body, "application/json")
+            return
+        if path.startswith("/api/weather-tile/"):
+            suffix = path.removeprefix("/api/weather-tile/")
+            if not re.fullmatch(r"v2/radar/\d+/256/\d+/\d+/\d+/\d+/[\d_]+\.png", suffix):
+                self.send_error(HTTPStatus.BAD_REQUEST, "Invalid weather tile")
+                return
+            try:
+                body = fetch_weather_tile(suffix)
+            except (OSError, ValueError):
+                self.send_error(HTTPStatus.BAD_GATEWAY, "Weather radar temporarily unavailable")
+                return
+            self.send_bytes(body, "image/png")
+            return
+        if path.startswith("/api/map-tile/"):
+            try:
+                _, _, _, style, zoom_text, x_text, y_file = path.split("/")
+                zoom, x, y = int(zoom_text), int(x_text), int(y_file.removesuffix(".png"))
+                limit = 2 ** zoom
+                if style not in MAP_TILE_PROVIDERS or not (0 <= zoom <= 19 and 0 <= x < limit and 0 <= y < limit):
+                    raise ValueError("tile outside supported range")
+                body, content_type = fetch_map_tile(style, zoom, x, y)
+            except (OSError, ValueError):
+                self.send_error(HTTPStatus.BAD_GATEWAY, "Map tile temporarily unavailable")
+                return
+            self.send_bytes(body, content_type)
+            return
         if path.rstrip("/").endswith("/api/status") or path == "/api/status":
             body = json.dumps(status_payload(), separators=(",", ":")).encode()
             self.send_bytes(body, "application/json")

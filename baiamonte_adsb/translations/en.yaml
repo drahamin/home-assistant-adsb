@@ -32,6 +32,9 @@ configuration:
   WEATHER_OVERLAY_OPACITY:
     name: Weather overlay opacity
     description: Visibility percentage from 10 to 100 for the rain radar layer.
+  MAP_STYLE:
+    name: Base map style
+    description: Choose Standard, Humanitarian, Topographic, Dark, or Satellite tiles for the dashboard and TV maps.
   PIAWARE_FEEDER_DASH_ID:
     name: FlightAware feeder ID
     description: Unique feeder ID from your FlightAware account.
