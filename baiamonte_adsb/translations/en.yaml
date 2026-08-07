@@ -11,6 +11,18 @@ configuration:
   SERVICE_ENABLE_HTTP:
     name: Receiver map
     description: Run the original dump1090 receiver map in addition to the Baiamonte dashboard.
+  GPS_USE_USB:
+    name: Use attached USB GPS
+    description: Automatically use a recent NMEA GPS fix for the receiver, map, and feeder coordinates.
+  GPS_DEVICE:
+    name: USB GPS device
+    description: Use auto to detect a GPS on ttyACM or ttyUSB, or enter a specific device such as /dev/ttyACM0.
+  GPS_BAUD:
+    name: GPS baud rate
+    description: Serial speed used by the attached NMEA receiver. Most USB GPS units use 9600.
+  GPS_FIX_TIMEOUT:
+    name: GPS startup wait
+    description: Seconds to wait for the first GPS fix before falling back to the Home Assistant location.
   PIAWARE_FEEDER_DASH_ID:
     name: FlightAware feeder ID
     description: Unique feeder ID from your FlightAware account.
@@ -33,7 +45,7 @@ configuration:
     name: Receiver elevation
     description: Use HOMEASSISTANT_ELEVATION to follow the Home Assistant elevation.
 network:
-  8099/tcp: TV display host port (internal ingress port remains 8099)
+  8099/tcp: TV display host port (default 8998; internal ingress remains 8099)
   30001/tcp: TCP raw input
   30002/tcp: TCP raw output
   30003/tcp: TCP BaseStation output

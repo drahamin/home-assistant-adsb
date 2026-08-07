@@ -2,7 +2,7 @@ ARG BUILD_FROM=thomx/fr24feed-piaware:2.6.1
 FROM ${BUILD_FROM}
 
 ENV TZ=UTC \
-    S6_CMD_WAIT_FOR_SERVICES_MAXTIME=30000 \
+    S6_CMD_WAIT_FOR_SERVICES_MAXTIME=90000 \
     BAIAMONTE_DASHBOARD_PORT=8099
 
 ADD https://github.com/hassio-addons/bashio/archive/v0.15.0.tar.gz /tmp/bashio.tar.gz
@@ -27,8 +27,9 @@ RUN chmod +x /export-env-from-config.sh \
     && find /etc/s6-overlay/s6-rc.d/ -name run -exec sed -i '1 a\source /export-env-from-config.sh' {} \;
 
 COPY dashboard /opt/baiamonte/dashboard
+COPY gps /opt/baiamonte/gps
 COPY rootfs /
-RUN chmod +x /etc/s6-overlay/s6-rc.d/baiamonte-dashboard/run \
+RUN chmod +x /etc/s6-overlay/s6-rc.d/baiamonte-dashboard/run /etc/s6-overlay/s6-rc.d/baiamonte-gps/run \
     && touch /etc/s6-overlay/s6-rc.d/user/contents.d/baiamonte-dashboard
 
 LABEL io.hass.type="app" \

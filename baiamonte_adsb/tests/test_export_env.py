@@ -83,6 +83,41 @@ class ExportEnvironmentTests(unittest.TestCase):
         self.assertEqual(result.stdout, "37.847|14.925|959")
         self.assertNotIn("parse error", result.stderr)
 
+    def test_usb_gps_fix_replaces_location_placeholders(self):
+        options = {
+            "GPS_USE_USB": True,
+            "GPS_FIX_TIMEOUT": 0,
+            "HTML_SITE_LAT": "HOMEASSISTANT_LATITUDE",
+            "HTML_SITE_LON": "HOMEASSISTANT_LONGITUDE",
+            "HTML_SITE_ALT": "HOMEASSISTANT_ELEVATION",
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            options_file = Path(tmp) / "options.json"
+            gps_file = Path(tmp) / "gps.json"
+            options_file.write_text(json.dumps(options))
+            gps_file.write_text(json.dumps({"lat": 37.8471, "lon": 14.9254, "alt": 959}))
+            environment = os.environ.copy()
+            environment.pop("SUPERVISOR_TOKEN", None)
+            environment["BAIAMONTE_OPTIONS_FILE"] = str(options_file)
+            environment["BAIAMONTE_GPS_JSON"] = str(gps_file)
+
+            command = (
+                f'source "{EXPORT_SCRIPT}"; '
+                "printf '%s|%s|%s' "
+                '"$HTML_SITE_LAT" "$HTML_SITE_LON" "$HTML_SITE_ALT"'
+            )
+            result = subprocess.run(
+                ["bash", "-c", command],
+                env=environment,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "37.8471|14.9254|959")
+
 
 if __name__ == "__main__":
     unittest.main()

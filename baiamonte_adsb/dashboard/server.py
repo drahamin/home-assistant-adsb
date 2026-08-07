@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import math
 import mimetypes
 import os
 import socket
@@ -16,12 +17,15 @@ from urllib.parse import unquote, urlsplit
 
 WEB_ROOT = Path(__file__).resolve().parent / "web"
 AIRCRAFT_FILES = (
-    Path(os.getenv("BAIAMONTE_AIRCRAFT_JSON", "/run/dump1090-fa/aircraft.json")),
+    Path(os.getenv("BAIAMONTE_AIRCRAFT_JSON", "/usr/lib/fr24/public_html/data/aircraft.json")),
+    Path("/usr/lib/fr24/public_html/data/aircraft.json"),
+    Path("/run/dump1090-fa/aircraft.json"),
     Path("/var/run/dump1090-fa/aircraft.json"),
     Path("/run/dump1090-mutability/aircraft.json"),
     Path("/var/run/dump1090-mutability/aircraft.json"),
     Path("/run/readsb/aircraft.json"),
 )
+GPS_LOCATION_FILE = Path(os.getenv("BAIAMONTE_GPS_JSON", "/run/baiamonte/gps.json"))
 PORTALS = (
     ("FlightAware", "SERVICE_ENABLE_PIAWARE", "PIAWARE_FEEDER_DASH_ID"),
     ("FlightRadar24", "SERVICE_ENABLE_FR24FEED", "FR24FEED_FR24KEY"),
@@ -56,6 +60,36 @@ def number(name: str) -> float | None:
         return None
 
 
+def current_location() -> dict:
+    """Prefer a recent USB GPS fix, then fall back to configured coordinates."""
+    if enabled("GPS_USE_USB", True):
+        try:
+            fix = json.loads(GPS_LOCATION_FILE.read_text(encoding="utf-8"))
+            latitude = float(fix["lat"])
+            longitude = float(fix["lon"])
+            timestamp = float(fix.get("timestamp", 0))
+            if -90 <= latitude <= 90 and -180 <= longitude <= 180 and time.time() - timestamp < 180:
+                altitude = fix.get("alt")
+                return {
+                    "lat": latitude,
+                    "lon": longitude,
+                    "alt": float(altitude) if altitude is not None else number("HTML_SITE_ALT"),
+                    "source": "USB GPS",
+                    "device": str(fix.get("device", "")),
+                    "fix_age": max(0, round(time.time() - timestamp, 1)),
+                }
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError):
+            pass
+    return {
+        "lat": number("HTML_SITE_LAT"),
+        "lon": number("HTML_SITE_LON"),
+        "alt": number("HTML_SITE_ALT"),
+        "source": "Home Assistant",
+        "device": "",
+        "fix_age": None,
+    }
+
+
 def tcp_ready(port: int) -> bool:
     try:
         with socket.create_connection(("127.0.0.1", port), timeout=0.15):
@@ -75,7 +109,18 @@ def read_aircraft() -> tuple[dict, str | None]:
     return {"aircraft": [], "now": time.time(), "messages": 0}, None
 
 
-def clean_aircraft(record: dict) -> dict:
+def distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return the great-circle distance between two WGS84 positions."""
+    radius_km = 6371.0088
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+    a = min(1.0, max(0.0, a))
+    return radius_km * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def clean_aircraft(record: dict, reference_lat: float | None = None, reference_lon: float | None = None) -> dict:
     altitude = record.get("alt_baro", record.get("altitude"))
     if altitude == "ground":
         altitude = 0
@@ -83,7 +128,7 @@ def clean_aircraft(record: dict) -> dict:
     country_code = str(record.get("country_code", "")).strip().upper()
     if len(country_code) != 2:
         country_code = next((code for prefix, code in REGISTRATION_COUNTRIES if registration.startswith(prefix)), "")
-    return {
+    cleaned = {
         "hex": str(record.get("hex", "")).strip(),
         "flight": str(record.get("flight", "")).strip() or "Unidentified",
         "lat": record.get("lat"),
@@ -100,12 +145,26 @@ def clean_aircraft(record: dict) -> dict:
         "squawk": str(record.get("squawk", "")).strip(),
         "country_code": country_code,
     }
+    latitude, longitude = cleaned["lat"], cleaned["lon"]
+    if all(isinstance(value, (int, float)) for value in (latitude, longitude, reference_lat, reference_lon)):
+        cleaned["distance_km"] = round(distance_km(reference_lat, reference_lon, latitude, longitude), 2)
+    else:
+        cleaned["distance_km"] = None
+    return cleaned
 
 
 def status_payload() -> dict:
     raw, source = read_aircraft()
-    records = [clean_aircraft(item) for item in raw.get("aircraft", []) if isinstance(item, dict)]
-    records.sort(key=lambda item: (item["seen"] is None, item["seen"] or 999999))
+    location = current_location()
+    site_lat = location["lat"]
+    site_lon = location["lon"]
+    records = [clean_aircraft(item, site_lat, site_lon) for item in raw.get("aircraft", []) if isinstance(item, dict)]
+    records.sort(key=lambda item: (
+        item["distance_km"] is None,
+        item["distance_km"] if item["distance_km"] is not None else math.inf,
+        item["seen"] is None,
+        item["seen"] if item["seen"] is not None else math.inf,
+    ))
     positioned = sum(item["lat"] is not None and item["lon"] is not None for item in records)
     portals = []
     for label, flag, credential in PORTALS:
@@ -134,11 +193,7 @@ def status_payload() -> dict:
             "messages": raw.get("messages", 0),
             "map_ready": tcp_ready(8080),
         },
-        "location": {
-            "lat": number("HTML_SITE_LAT"),
-            "lon": number("HTML_SITE_LON"),
-            "alt": number("HTML_SITE_ALT"),
-        },
+        "location": location,
         "counts": {"aircraft": len(records), "positioned": positioned},
         "aircraft": records[:250],
         "portals": portals,
@@ -148,6 +203,7 @@ def status_payload() -> dict:
 def aircraft_feed() -> dict:
     """Return the deliberately small, credential-free feed used by wall displays."""
     status = status_payload()
+    nearest = [item for item in status["aircraft"] if item.get("distance_km") is not None][:10]
     return {
         "generated_at": status["generated_at"],
         "site": status["site"],
@@ -155,6 +211,7 @@ def aircraft_feed() -> dict:
         "location": status["location"],
         "counts": status["counts"],
         "aircraft": status["aircraft"],
+        "nearest_aircraft": nearest,
     }
 
 
@@ -189,7 +246,7 @@ class Handler(BaseHTTPRequestHandler):
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
         if relative == "display":
             relative = "display.html"
-        if relative not in {"index.html", "app.css", "app.js", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
+        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
             relative = "index.html"
         target = WEB_ROOT / relative
         try:

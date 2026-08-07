@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 1.0.4
+version: 1.2.0
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -11,6 +11,8 @@ startup: "application"
 boot: "auto"
 init: false
 usb: true
+uart: true
+udev: true
 hassio_api: true
 homeassistant_api: true
 ingress: true
@@ -21,7 +23,7 @@ panel_title: "ADS-B"
 panel_admin: true
 icon: "icon.png"
 ports:
-  8099/tcp: 8099
+  8099/tcp: 8998
   30001/tcp: null
   30002/tcp: null
   30003/tcp: null
@@ -31,7 +33,7 @@ ports:
   8754/tcp: null
   30053/tcp: null
 ports_description:
-  8099/tcp: "TV display host port (internal ingress port remains 8099)"
+  8099/tcp: "TV display host port 8998 (internal ingress port remains 8099)"
   30001/tcp: "TCP raw input"
   30002/tcp: "TCP raw output"
   30003/tcp: "TCP BaseStation output"
@@ -45,6 +47,10 @@ options:
   SERVICE_ENABLE_PIAWARE: true
   SERVICE_ENABLE_FR24FEED: true
   SERVICE_ENABLE_HTTP: true
+  GPS_USE_USB: true
+  GPS_DEVICE: "auto"
+  GPS_BAUD: 9600
+  GPS_FIX_TIMEOUT: 30
   PIAWARE_FEEDER_DASH_ID: ""
   FR24FEED_FR24KEY: ""
   ADSBEXCHANGE_UUID: ""
@@ -61,6 +67,10 @@ schema:
   SERVICE_ENABLE_PIAWARE: bool
   SERVICE_ENABLE_FR24FEED: bool
   SERVICE_ENABLE_HTTP: bool
+  GPS_USE_USB: bool
+  GPS_DEVICE: str
+  GPS_BAUD: int
+  GPS_FIX_TIMEOUT: int
   SERVICE_ENABLE_IMPORT_OVER_NETCAT: bool?
   SERVICE_ENABLE_ADSBEXCHANGE: bool?
   SERVICE_ENABLE_PLANEFINDER: bool?

@@ -2,6 +2,7 @@ import importlib.util
 import json
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -13,6 +14,12 @@ SPEC.loader.exec_module(dashboard)
 
 
 class DashboardTests(unittest.TestCase):
+    def test_feeder_aircraft_json_path_is_supported(self):
+        self.assertIn(
+            Path("/usr/lib/fr24/public_html/data/aircraft.json"),
+            dashboard.AIRCRAFT_FILES,
+        )
+
     def test_clean_aircraft_normalizes_dump1090_record(self):
         item = dashboard.clean_aircraft({"hex": "abc123", "flight": " ITA42 ", "r": "EI-EMN", "t": "B738", "alt_baro": 18500, "gs": 310.5})
         self.assertEqual(item["flight"], "ITA42")
@@ -21,6 +28,37 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(item["registration"], "EI-EMN")
         self.assertEqual(item["aircraft_type"], "B738")
         self.assertEqual(item["country_code"], "IE")
+        self.assertIsNone(item["distance_km"])
+
+    def test_aircraft_distance_uses_receiver_position(self):
+        item = dashboard.clean_aircraft(
+            {"hex": "abc123", "lat": 37.75, "lon": 15.10},
+            reference_lat=37.75,
+            reference_lon=15.00,
+        )
+        self.assertAlmostEqual(item["distance_km"], 8.79, delta=0.1)
+
+    def test_recent_usb_gps_fix_overrides_configured_location(self):
+        old_file = dashboard.GPS_LOCATION_FILE
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "gps.json"
+            path.write_text(json.dumps({
+                "lat": 37.8471,
+                "lon": 14.9254,
+                "alt": 959,
+                "device": "/dev/ttyACM0",
+                "timestamp": time.time(),
+            }))
+            dashboard.GPS_LOCATION_FILE = path
+            os.environ["GPS_USE_USB"] = "true"
+            try:
+                location = dashboard.current_location()
+                self.assertEqual(location["source"], "USB GPS")
+                self.assertEqual(location["lat"], 37.8471)
+                self.assertEqual(location["alt"], 959.0)
+            finally:
+                dashboard.GPS_LOCATION_FILE = old_file
+                os.environ.pop("GPS_USE_USB", None)
 
     def test_status_never_exposes_credentials(self):
         old_files = dashboard.AIRCRAFT_FILES
@@ -48,13 +86,18 @@ class DashboardTests(unittest.TestCase):
             path = Path(tmp) / "aircraft.json"
             path.write_text(json.dumps({"aircraft": [{"hex": "4ca8af", "flight": "RYR43ET", "lat": 37.9, "lon": 15.2}]}))
             dashboard.AIRCRAFT_FILES = (path,)
+            os.environ["HTML_SITE_LAT"] = "37.8"
+            os.environ["HTML_SITE_LON"] = "15.1"
             try:
                 feed = dashboard.aircraft_feed()
                 self.assertEqual(feed["aircraft"][0]["flight"], "RYR43ET")
+                self.assertEqual(feed["nearest_aircraft"][0]["flight"], "RYR43ET")
                 self.assertNotIn("portals", feed)
                 self.assertNotIn("receiver", feed)
             finally:
                 dashboard.AIRCRAFT_FILES = old_files
+                os.environ.pop("HTML_SITE_LAT", None)
+                os.environ.pop("HTML_SITE_LON", None)
 
 
 if __name__ == "__main__":

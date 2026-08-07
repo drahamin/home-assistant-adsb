@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#080706">
   <title>Baiamonte ADS-B</title>
   <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="map-theme.css?v=120">
 </head>
 <body>
   <svg class="sprite" aria-hidden="true"><defs>
@@ -36,10 +37,11 @@
         </div>
         <div class="lower-grid"><article class="panel"><div class="panel-head"><div><p>RECENT CONTACTS</p><h3>Aircraft nearest in time</h3></div><button class="text-button" data-go="aircraft">View all →</button></div><div id="recent-aircraft" class="recent-list"></div></article><article class="panel"><div class="panel-head"><div><p>FEEDER NETWORK</p><h3>Portal readiness</h3></div><span class="route-icon"><svg><use href="#i-network"/></svg></span></div><div id="portal-summary" class="portal-list"></div></article></div>
       </section>
-      <section class="page" id="aircraft"><div class="section-head"><div><p>LIVE AIRCRAFT REGISTRY</p><h2>Aircraft in receiver range</h2><span>Callsign, altitude, speed, track, and last signal from dump1090.</span></div><span class="badge" id="aircraft-badge">0 active</span></div><div id="aircraft-grid" class="aircraft-grid"></div></section>
-      <section class="page" id="portals"><div class="section-head"><div><p>MULTI-PORTAL FEEDING</p><h2>Sharing network</h2><span>Enabled services and credential readiness. Secret keys are never displayed.</span></div><span class="badge neutral">Configuration</span></div><div id="portal-grid" class="portal-grid"></div><article class="panel privacy"><span class="route-icon"><svg><use href="#i-network"/></svg></span><div><p>BAIAMONTE DATA POLICY</p><h3>Your keys stay inside Home Assistant</h3><span>This dashboard reports only whether a portal is enabled and configured. It never exposes sharing keys, feeder IDs, UUIDs, or sharecodes.</span></div></article></section>
+      <section class="page" id="aircraft"><div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>LIVE AIRCRAFT REGISTRY</p><h2>Aircraft in receiver range</h2><span>Callsign, altitude, speed, track, and last signal from dump1090.</span></div><span class="badge" id="aircraft-badge">0 active</span></div><div id="aircraft-grid" class="aircraft-grid"></div></section>
+      <section class="page" id="portals"><div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>MULTI-PORTAL FEEDING</p><h2>Sharing network</h2><span>Enabled services and credential readiness. Secret keys are never displayed.</span></div><span class="badge neutral">Configuration</span></div><div id="portal-grid" class="portal-grid"></div><article class="panel privacy"><span class="route-icon"><svg><use href="#i-network"/></svg></span><div><p>BAIAMONTE DATA POLICY</p><h3>Your keys stay inside Home Assistant</h3><span>This dashboard reports only whether a portal is enabled and configured. It never exposes sharing keys, feeder IDs, UUIDs, or sharecodes.</span></div></article></section>
     </main>
   </div>
-  <script src="app.js"></script>
+  <script src="map.js?v=120"></script>
+  <script src="app.js?v=120"></script>
 </body>
 </html>

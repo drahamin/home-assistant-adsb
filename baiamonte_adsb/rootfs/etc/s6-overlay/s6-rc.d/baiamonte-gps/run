@@ -1,0 +1,13 @@
+#!/command/with-contenv bash
+
+gps_enabled=$(jq -r '.GPS_USE_USB // true' /data/options.json)
+if [[ "${gps_enabled}" != "true" ]]; then
+  exec tail -f /dev/null
+fi
+
+gps_device=$(jq -r '.GPS_DEVICE // "auto"' /data/options.json)
+gps_baud=$(jq -r '.GPS_BAUD // 9600' /data/options.json)
+exec python3 /opt/baiamonte/gps/gps_reader.py \
+  --device "${gps_device}" \
+  --baud "${gps_baud}" \
+  --output /run/baiamonte/gps.json

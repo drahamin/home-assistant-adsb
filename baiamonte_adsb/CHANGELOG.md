@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0
+
+- Fixes live aircraft discovery by reading the feeder image's actual dump1090 JSON output.
+- Adds a real OpenStreetMap basemap with geographically positioned aircraft in both interfaces.
+- Adds visible Back controls to detail pages and the TV display.
+- Adds automatic NMEA USB GPS detection for receiver, map, and feeder coordinates with a Home Assistant fallback.
+
+## 1.1.0
+
+- Ranks positioned aircraft by distance from the configured Baiamonte receiver location.
+- Adds a compact `nearest_aircraft` top-10 feed for Home Assistant dashboards.
+- Moves the default TV/kiosk host port to 8998 while retaining internal ingress port 8099.
+
 ## 1.0.4
 
 - Makes Home Assistant resolve the TV display link using the configured host port.

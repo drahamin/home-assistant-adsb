@@ -7,11 +7,12 @@
   <title>Baiamonte Airspace</title>
   <link rel="stylesheet" href="display.css">
   <link rel="stylesheet" href="display-board.css?v=102">
+  <link rel="stylesheet" href="map-theme.css?v=120">
 </head>
 <body>
   <main>
     <header>
-      <div class="identity"><img src="brand-icon.png" alt=""><span><small>TENUTA BAIAMONTE</small><strong>Estate airspace</strong></span></div>
+      <div class="identity"><button class="display-back" id="display-back" type="button">← Back</button><img src="brand-icon.png" alt=""><span><small>TENUTA BAIAMONTE</small><strong>Estate airspace</strong></span></div>
       <div class="readout"><span><small>AIRCRAFT</small><strong id="aircraft-count">0</strong></span><span><small>POSITIONED</small><strong id="positioned-count">0</strong></span><span><small>RECEIVER</small><strong id="receiver-state">Starting</strong></span><i id="receiver-light"></i></div>
     </header>
     <div class="airspace-board">
@@ -30,6 +31,7 @@
     </div>
     <footer><span id="location">Mount Etna · Sicily</span><span id="updated">Waiting for receiver</span></footer>
   </main>
-  <script src="display.js?v=102"></script>
+  <script src="map.js?v=120"></script>
+  <script src="display.js?v=120"></script>
 </body>
 </html>
