@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0
+
+- Renames the fullscreen route from `/display` to `/tv`, while retaining `/display` as a compatibility alias.
+- Adds friendly RTL-SDR device, gain, PPM correction, and bias-tee settings.
+- Adds pinch-to-zoom and matching zoom/reset controls on dashboard and TV maps.
+- Adds Samsung/Tizen flexbox layout fallbacks and older-browser-safe TV JavaScript.
+- Adds receiver activity and radio-profile panels to the Watch Area page.
+- Aligns page names with AIS: Overview, Live traffic, and Watch area.
+- Adds compact country, airline/operator, registration, type, squawk, and distance aircraft cards.
+
 ## 1.3.2
 
 - Accepts RainViewer's current alphanumeric radar-frame identifiers so precipitation tiles render on dashboards and TV displays.

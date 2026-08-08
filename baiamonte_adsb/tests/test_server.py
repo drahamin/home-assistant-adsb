@@ -103,6 +103,9 @@ class DashboardTests(unittest.TestCase):
                 portal = next(item for item in payload["portals"] if item["name"] == "FlightRadar24")
                 self.assertTrue(portal["configured"])
                 self.assertEqual(payload["counts"]["aircraft"], 1)
+                self.assertIn("receiver_log", payload)
+                self.assertIn("device", payload["receiver"])
+                self.assertIn("gain", payload["receiver"])
             finally:
                 dashboard.AIRCRAFT_FILES = old_files
                 os.environ.pop("FR24FEED_FR24KEY", None)

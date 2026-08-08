@@ -60,3 +60,23 @@ while IFS= read -r -d '' line; do
   line=${line//HOMEASSISTANT_ELEVATION/${elevation}}
   export "${line}"
 done < <(jq -j "${jq_filter}" "${options_file}")
+
+# Translate the friendly Home Assistant radio fields into the decoder options
+# understood by the upstream dump1090 image.
+radio_args="${DUMP1090_ADDITIONAL_ARGS:-}"
+if [[ "${RECEIVER_DEVICE_INDEX:-0}" =~ ^[A-Za-z0-9._:-]+$ ]]; then
+  radio_args="${radio_args} --device-index ${RECEIVER_DEVICE_INDEX}"
+fi
+if [[ "${RECEIVER_GAIN:-auto}" == "auto" ]]; then
+  radio_args="${radio_args} --gain -10"
+elif [[ "${RECEIVER_GAIN}" =~ ^-?[0-9]+([.][0-9]+)?$ ]]; then
+  radio_args="${radio_args} --gain ${RECEIVER_GAIN}"
+fi
+if [[ "${RECEIVER_PPM:-0}" =~ ^-?[0-9]+$ ]]; then
+  radio_args="${radio_args} --ppm ${RECEIVER_PPM}"
+fi
+export DUMP1090_ADDITIONAL_ARGS="${radio_args# }"
+if [[ "${RECEIVER_BIAS_TEE:-false}" == "true" ]]; then
+  export SERVICE_ENABLE_BIAST=true
+  export BIAST_ARGS="-b 1"
+fi

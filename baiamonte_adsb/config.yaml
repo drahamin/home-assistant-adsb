@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 1.3.2
+version: 1.4.0
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -17,7 +17,7 @@ hassio_api: true
 homeassistant_api: true
 ingress: true
 ingress_port: 8099
-webui: "http://[HOST]:[PORT:8099]/display"
+webui: "http://[HOST]:[PORT:8099]/tv"
 panel_icon: "mdi:airplane-marker"
 panel_title: "ADS-B"
 panel_admin: true
@@ -47,6 +47,10 @@ options:
   SERVICE_ENABLE_PIAWARE: true
   SERVICE_ENABLE_FR24FEED: true
   SERVICE_ENABLE_HTTP: true
+  RECEIVER_DEVICE_INDEX: "0"
+  RECEIVER_GAIN: "auto"
+  RECEIVER_PPM: 0
+  RECEIVER_BIAS_TEE: false
   GPS_USE_USB: true
   GPS_DEVICE: "auto"
   GPS_BAUD: 9600
@@ -71,6 +75,10 @@ schema:
   SERVICE_ENABLE_PIAWARE: bool
   SERVICE_ENABLE_FR24FEED: bool
   SERVICE_ENABLE_HTTP: bool
+  RECEIVER_DEVICE_INDEX: str
+  RECEIVER_GAIN: str
+  RECEIVER_PPM: int
+  RECEIVER_BIAS_TEE: bool
   GPS_USE_USB: bool
   GPS_DEVICE: str
   GPS_BAUD: int

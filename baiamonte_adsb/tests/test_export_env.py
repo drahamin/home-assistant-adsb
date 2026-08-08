@@ -10,6 +10,24 @@ EXPORT_SCRIPT = Path(__file__).parents[1] / "export-env-from-config.sh"
 
 
 class ExportEnvironmentTests(unittest.TestCase):
+    def test_friendly_radio_options_build_dump1090_arguments(self):
+        options = {
+            "RECEIVER_DEVICE_INDEX": "1",
+            "RECEIVER_GAIN": "38.6",
+            "RECEIVER_PPM": -2,
+            "RECEIVER_BIAS_TEE": True,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            options_file = Path(tmp) / "options.json"
+            options_file.write_text(json.dumps(options))
+            environment = os.environ.copy()
+            environment.pop("SUPERVISOR_TOKEN", None)
+            environment["BAIAMONTE_OPTIONS_FILE"] = str(options_file)
+            command = f'source "{EXPORT_SCRIPT}"; printf "%s|%s|%s" "$DUMP1090_ADDITIONAL_ARGS" "$SERVICE_ENABLE_BIAST" "$BIAST_ARGS"'
+            result = subprocess.run(["bash", "-c", command], env=environment, capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "--device-index 1 --gain 38.6 --ppm -2|true|-b 1")
+
     def test_options_are_exported_without_leading_newlines(self):
         options = {
             "SERVICE_ENABLE_PIAWARE": True,
