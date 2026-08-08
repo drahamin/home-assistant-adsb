@@ -15,6 +15,15 @@
   const MAX_LATITUDE = 85.05112878;
   const WEATHER_METADATA_URL = 'api/weather-maps';
   const WEATHER_CACHE_MS = 5 * 60 * 1000;
+  const AIRCRAFT_ICON = '<svg class="aircraft-shape" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c-.8 0-1.2.8-1.4 1.6L9.4 9 3 13v2l6.2-1.7-.4 5.1-2.4 1.8v1.5l5.6-1.2 5.6 1.2v-1.5l-2.4-1.8-.4-5.1L21 15v-2l-6.4-4-1.2-5.4C13.2 2.8 12.8 2 12 2z"/></svg>';
+  const ALTITUDE_BANDS = [
+    {maximum: 0, color: '#9b948a', short: 'GND', label: 'Ground'},
+    {maximum: 10000, color: '#58b87a', short: '<10k', label: 'Below 10,000 ft'},
+    {maximum: 20000, color: '#d4af37', short: '10–20k', label: '10,000–19,999 ft'},
+    {maximum: 30000, color: '#e28a45', short: '20–30k', label: '20,000–29,999 ft'},
+    {maximum: 40000, color: '#d65d73', short: '30–40k', label: '30,000–39,999 ft'},
+    {maximum: Infinity, color: '#9873d1', short: '40k+', label: '40,000 ft and above'},
+  ];
   let weatherMetadata = null;
   let weatherFetchedAt = 0;
   let weatherRequest = null;
@@ -39,6 +48,20 @@
 
   function usablePoint(point) {
     return point && Number.isFinite(point.lat) && Number.isFinite(point.lon);
+  }
+
+  function altitudeBand(altitude) {
+    const value = Number(altitude);
+    if (!Number.isFinite(value)) return {color: '#d4af37', short: 'N/A', label: 'Altitude unavailable'};
+    return ALTITUDE_BANDS.find(band => value <= band.maximum);
+  }
+
+  function applyAircraftVisual(node, altitude, track) {
+    const band = altitudeBand(altitude);
+    node.style.setProperty('--aircraft-color', band.color);
+    node.style.setProperty('--track', `${Number(track) || 0}deg`);
+    node.dataset.altitudeBand = band.short;
+    return band;
   }
 
   function latestWeatherFrame() {
@@ -84,6 +107,11 @@
       this.attribution.rel = 'noopener';
       this.attribution.textContent = '© OpenStreetMap';
       if (!this.attribution.parentNode) container.append(this.attribution);
+      this.altitudeLegend = container.querySelector('.altitude-legend') || document.createElement('div');
+      this.altitudeLegend.className = 'altitude-legend';
+      this.altitudeLegend.setAttribute('aria-label', 'Aircraft altitude color scale');
+      this.altitudeLegend.innerHTML = '<b>ALTITUDE</b>' + ALTITUDE_BANDS.map(band => `<span title="${band.label}"><i style="--legend-color:${band.color}"></i>${band.short}</span>`).join('');
+      if (!this.altitudeLegend.parentNode) container.append(this.altitudeLegend);
       if (this.interactive) this.enableInteraction();
     }
 
@@ -349,4 +377,5 @@
 
   window.BaiamonteMap = BaiamonteMap;
   window.BaiamonteWeatherMap = BaiamonteWeatherMap;
+  window.BaiamonteAircraftVisual = {icon: AIRCRAFT_ICON, altitudeBand, apply: applyAircraftVisual};
 })();

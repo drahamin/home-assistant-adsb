@@ -180,7 +180,7 @@ def fetch_map_tile(style: str, zoom: int, x: int, y: int) -> tuple[bytes, str]:
     """Fetch and cache an OSM tile for TV browsers that block cross-origin images."""
     request = Request(
         MAP_TILE_PROVIDERS[style].format(z=zoom, x=x, y=y),
-        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.4.2 (+https://github.com/drahamin/home-assistant-adsb)"},
+        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.5.0 (+https://github.com/drahamin/home-assistant-adsb)"},
     )
     with urlopen(request, timeout=10) as response:
         body = response.read()
@@ -202,7 +202,7 @@ def fetch_weather_metadata() -> bytes:
         return body
     request = Request(
         "https://api.rainviewer.com/public/weather-maps.json",
-        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.4.2"},
+        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.5.0"},
     )
     with urlopen(request, timeout=10) as response:
         body = response.read()
@@ -215,7 +215,7 @@ def fetch_weather_metadata() -> bytes:
 def fetch_weather_tile(suffix: str) -> bytes:
     request = Request(
         f"https://tilecache.rainviewer.com/{suffix}",
-        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.4.2"},
+        headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/1.5.0"},
     )
     with urlopen(request, timeout=10) as response:
         body = response.read()

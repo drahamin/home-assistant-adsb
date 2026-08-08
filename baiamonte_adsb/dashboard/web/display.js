@@ -54,7 +54,9 @@ function addAircraftMarker(view,item){
   marker.className='plane';
   marker.style.left=`${point.x}px`;
   marker.style.top=`${point.y}px`;
-  marker.innerHTML=`<span class="plane-icon"><i style="--track:${Number(item.track)||0}deg">▲</i></span><span class="plane-label"></span>`;
+  marker.innerHTML=`<span class="plane-icon">${BaiamonteAircraftVisual.icon}</span><span class="plane-label"></span>`;
+  const band=BaiamonteAircraftVisual.apply(marker,item.altitude,item.track);
+  marker.title=`${item.flight||String(item.hex||'Unknown').toUpperCase()} · ${fmt(item.altitude)} ft · ${band.label}`;
   marker.querySelector('.plane-label').textContent=item.flight||String(item.hex||'Unknown').toUpperCase();
   map.appendChild(marker);
 }
