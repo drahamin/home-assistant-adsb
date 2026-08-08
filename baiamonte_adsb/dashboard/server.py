@@ -50,6 +50,40 @@ REGISTRATION_COUNTRIES = (
     ("TC-", "TR"), ("A6-", "AE"), ("A7-", "QA"), ("HZ-", "SA"), ("JA", "JP"),
     ("HL", "KR"), ("B-", "CN"), ("VT-", "IN"), ("VH-", "AU"), ("ZK-", "NZ"),
 )
+AIRLINE_PREFIXES = {
+    "AEE": ("Aegean Airlines", "GR"),
+    "AFR": ("Air France", "FR"),
+    "AUA": ("Austrian Airlines", "AT"),
+    "BAW": ("British Airways", "GB"),
+    "BEL": ("Brussels Airlines", "BE"),
+    "DLH": ("Lufthansa", "DE"),
+    "EIN": ("Aer Lingus", "IE"),
+    "EJU": ("easyJet Europe", "AT"),
+    "EZY": ("easyJet", "GB"),
+    "FIN": ("Finnair", "FI"),
+    "IBE": ("Iberia", "ES"),
+    "ITA": ("ITA Airways", "IT"),
+    "ITY": ("ITA Airways", "IT"),
+    "KLM": ("KLM", "NL"),
+    "LOT": ("LOT Polish Airlines", "PL"),
+    "NAX": ("Norwegian", "NO"),
+    "QTR": ("Qatar Airways", "QA"),
+    "RYR": ("Ryanair", "IE"),
+    "SAS": ("SAS", "SE"),
+    "SWR": ("Swiss", "CH"),
+    "TAP": ("TAP Air Portugal", "PT"),
+    "THY": ("Turkish Airlines", "TR"),
+    "TRA": ("Transavia", "NL"),
+    "UAE": ("Emirates", "AE"),
+    "VLG": ("Vueling", "ES"),
+    "VOE": ("Volotea", "ES"),
+    "WMT": ("Wizz Air Malta", "MT"),
+    "WZZ": ("Wizz Air", "HU"),
+}
+AIRCRAFT_CACHE_SECONDS = 30
+last_aircraft_payload: dict | None = None
+last_aircraft_source: str | None = None
+last_aircraft_read_at = 0.0
 
 
 def enabled(name: str, default: bool = False) -> bool:
@@ -191,13 +225,24 @@ def fetch_weather_tile(suffix: str) -> bytes:
 
 
 def read_aircraft() -> tuple[dict, str | None]:
+    global last_aircraft_payload, last_aircraft_source, last_aircraft_read_at
     for path in AIRCRAFT_FILES:
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(payload, dict):
-                return payload, str(path)
+            if isinstance(payload, dict) and isinstance(payload.get("aircraft", []), list):
+                last_aircraft_payload = payload
+                last_aircraft_source = str(path)
+                last_aircraft_read_at = time.monotonic()
+                return payload, last_aircraft_source
         except (OSError, json.JSONDecodeError):
             continue
+    current_sources = {str(path) for path in AIRCRAFT_FILES}
+    if (
+        last_aircraft_payload is not None
+        and last_aircraft_source in current_sources
+        and time.monotonic() - last_aircraft_read_at <= AIRCRAFT_CACHE_SECONDS
+    ):
+        return last_aircraft_payload, last_aircraft_source
     return {"aircraft": [], "now": time.time(), "messages": 0}, None
 
 
@@ -216,13 +261,17 @@ def clean_aircraft(record: dict, reference_lat: float | None = None, reference_l
     altitude = record.get("alt_baro", record.get("altitude"))
     if altitude == "ground":
         altitude = 0
+    flight = str(record.get("flight", "")).strip().upper() or "Unidentified"
     registration = str(record.get("r", record.get("registration", ""))).strip().upper()
     country_code = str(record.get("country_code", "")).strip().upper()
     if len(country_code) != 2:
         country_code = next((code for prefix, code in REGISTRATION_COUNTRIES if registration.startswith(prefix)), "")
+    operator = str(record.get("ownOp", record.get("operator", ""))).strip()
+    carrier_prefix = re.sub(r"[^A-Z]", "", flight)[:3]
+    inferred_carrier, carrier_country_code = AIRLINE_PREFIXES.get(carrier_prefix, ("", ""))
     cleaned = {
         "hex": str(record.get("hex", "")).strip(),
-        "flight": str(record.get("flight", "")).strip() or "Unidentified",
+        "flight": flight,
         "lat": record.get("lat"),
         "lon": record.get("lon"),
         "altitude": altitude,
@@ -233,7 +282,8 @@ def clean_aircraft(record: dict, reference_lat: float | None = None, reference_l
         "category": record.get("category", ""),
         "registration": registration,
         "aircraft_type": str(record.get("t", record.get("type", ""))).strip().upper(),
-        "operator": str(record.get("ownOp", record.get("operator", ""))).strip(),
+        "operator": operator or inferred_carrier,
+        "carrier_country_code": carrier_country_code,
         "squawk": str(record.get("squawk", "")).strip(),
         "country_code": country_code,
     }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+
+- Keeps the last valid decoder snapshot during brief `aircraft.json` replacement windows so aircraft no longer blink off the maps.
+- Re-renders the overview map after Home Assistant page, visibility, and size changes.
+- Preserves the last known receiver state during transient dashboard refresh failures and retries automatically.
+- Adds separately labelled registration and carrier flags to Live traffic cards, with carrier inference for common Sicily traffic.
+
 ## 1.4.0
 
 - Renames the fullscreen route from `/display` to `/tv`, while retaining `/display` as a compatibility alias.
