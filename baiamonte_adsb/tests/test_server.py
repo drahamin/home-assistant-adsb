@@ -22,6 +22,19 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('id="fleet"', html)
         self.assertIn("nearest_aircraft", script)
 
+    def test_dashboard_and_tv_use_shared_altitude_aircraft_icons(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        map_script = (web / "map.js").read_text()
+        dashboard_script = (web / "app.js").read_text()
+        tv_script = (web / "display.js").read_text()
+        self.assertIn("AIRCRAFT_ICON", map_script)
+        self.assertIn("ALTITUDE_BANDS", map_script)
+        self.assertIn("altitude-legend", map_script)
+        self.assertIn("BaiamonteAircraftVisual.apply", dashboard_script)
+        self.assertIn("BaiamonteAircraftVisual.apply", tv_script)
+        self.assertNotIn("<span>▲</span>", dashboard_script)
+        self.assertNotIn(">▲</i>", tv_script)
+
     def test_current_rainviewer_hash_path_is_valid(self):
         self.assertTrue(dashboard.valid_weather_tile_path("v2/radar/25dbbe425e29/256/7/67/48/2/1_1.png"))
 

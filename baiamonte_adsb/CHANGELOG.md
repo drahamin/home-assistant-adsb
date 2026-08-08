@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.0
+
+- Replaces triangular map markers with compact, track-oriented top-down aircraft silhouettes.
+- Colors aircraft by altitude on both the Home Assistant and fullscreen TV maps.
+- Adds an always-visible altitude color scale for ground, sub-10k, 10–20k, 20–30k, 30–40k, and 40k+ contacts.
+
 ## 1.4.2
 
 - Keeps weather tiles geographically locked to the basemap during every pan, zoom, resize, and Home Assistant page return.
