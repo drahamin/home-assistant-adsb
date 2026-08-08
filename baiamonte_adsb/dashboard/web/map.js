@@ -42,7 +42,10 @@
   }
 
   function latestWeatherFrame() {
-    if (weatherMetadata && Date.now() - weatherFetchedAt < WEATHER_CACHE_MS) return weatherMetadata;
+    // Keep one return type for both a fresh request and a cached frame. Map
+    // redraws always chain this value with .then(); returning the cached object
+    // directly used to abort every pan/zoom after weather had loaded once.
+    if (weatherMetadata && Date.now() - weatherFetchedAt < WEATHER_CACHE_MS) return Promise.resolve(weatherMetadata);
     if (!weatherRequest) {
       weatherRequest = fetch(WEATHER_METADATA_URL, {cache: 'no-store'})
         .then(response => {

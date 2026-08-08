@@ -68,10 +68,10 @@ function render(data){
   const first=positioned.length?positioned[0]:null;
   const center={lat:typeof location.lat==='number'?location.lat:(first&&typeof first.lat==='number'?first.lat:37.847),lon:typeof location.lon==='number'?location.lon:(first&&typeof first.lon==='number'?first.lon:14.925)};
   const view=geoMap.render(center,positioned,data.map_style||'standard');
-  weatherMap.render(view,data.weather);
   $$('.plane,.estate-marker').forEach(node=>node.remove());
   addEstateMarker(view,center);
   positioned.forEach(item=>addAircraftMarker(view,item));
+  weatherMap.render(view,data.weather);
   $('#empty').classList.toggle('show',positioned.length===0);
   $('#fleet-count').textContent=positioned.length;
   const list=$('#flight-list');
