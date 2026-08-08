@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.2
+
+- Keeps weather tiles geographically locked to the basemap during every pan, zoom, resize, and Home Assistant page return.
+- Prevents a cached weather redraw from interrupting the map render and removing otherwise valid aircraft markers.
+- Draws aircraft before starting weather work so radar availability can never control aircraft visibility.
+
 ## 1.4.1
 
 - Keeps the last valid decoder snapshot during brief `aircraft.json` replacement windows so aircraft no longer blink off the maps.

@@ -25,6 +25,17 @@ class DashboardTests(unittest.TestCase):
     def test_current_rainviewer_hash_path_is_valid(self):
         self.assertTrue(dashboard.valid_weather_tile_path("v2/radar/25dbbe425e29/256/7/67/48/2/1_1.png"))
 
+    def test_cached_weather_frame_remains_promise_compatible(self):
+        script = (Path(__file__).parents[1] / "dashboard" / "web" / "map.js").read_text()
+        self.assertIn("return Promise.resolve(weatherMetadata)", script)
+
+    def test_weather_render_cannot_preempt_aircraft_markers(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        dashboard_script = (web / "app.js").read_text()
+        tv_script = (web / "display.js").read_text()
+        self.assertLess(dashboard_script.index("map.appendChild(node)});weatherMap.render"), dashboard_script.index("$('#radar-map').addEventListener"))
+        self.assertLess(tv_script.index("positioned.forEach(item=>addAircraftMarker"), tv_script.index("weatherMap.render(view,data.weather)"))
+
     def test_weather_tile_path_rejects_traversal(self):
         self.assertFalse(dashboard.valid_weather_tile_path("v2/radar/../../options.json"))
 
