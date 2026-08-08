@@ -42,7 +42,31 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(item["registration"], "EI-EMN")
         self.assertEqual(item["aircraft_type"], "B738")
         self.assertEqual(item["country_code"], "IE")
+        self.assertEqual(item["carrier_country_code"], "IT")
+        self.assertEqual(item["operator"], "ITA Airways")
         self.assertIsNone(item["distance_km"])
+
+    def test_last_valid_aircraft_snapshot_survives_partial_decoder_write(self):
+        old_files = dashboard.AIRCRAFT_FILES
+        old_payload = dashboard.last_aircraft_payload
+        old_source = dashboard.last_aircraft_source
+        old_read_at = dashboard.last_aircraft_read_at
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "aircraft.json"
+            path.write_text(json.dumps({"messages": 7, "aircraft": [{"hex": "4ca8af", "flight": "RYR43ET"}]}))
+            dashboard.AIRCRAFT_FILES = (path,)
+            try:
+                valid, source = dashboard.read_aircraft()
+                path.write_text('{"messages": 8, "aircraft": [')
+                cached, cached_source = dashboard.read_aircraft()
+                self.assertEqual(valid, cached)
+                self.assertEqual(source, cached_source)
+                self.assertEqual(cached["aircraft"][0]["flight"], "RYR43ET")
+            finally:
+                dashboard.AIRCRAFT_FILES = old_files
+                dashboard.last_aircraft_payload = old_payload
+                dashboard.last_aircraft_source = old_source
+                dashboard.last_aircraft_read_at = old_read_at
 
     def test_aircraft_distance_uses_receiver_position(self):
         item = dashboard.clean_aircraft(
