@@ -11,6 +11,18 @@ configuration:
   SERVICE_ENABLE_HTTP:
     name: Receiver map
     description: Run the original dump1090 receiver map in addition to the Baiamonte dashboard.
+  RECEIVER_DEVICE_INDEX:
+    name: ADS-B Radio Device
+    description: RTL-SDR device index or serial identifier. Use 0 for the first receiver.
+  RECEIVER_GAIN:
+    name: ADS-B Radio Gain
+    description: Use auto or enter a supported tuner gain in dB.
+  RECEIVER_PPM:
+    name: ADS-B Frequency Correction
+    description: RTL-SDR oscillator correction in parts per million.
+  RECEIVER_BIAS_TEE:
+    name: ADS-B Bias Tee
+    description: Supply antenna power through supported hardware only when required.
   GPS_USE_USB:
     name: Use attached USB GPS
     description: Automatically use a recent NMEA GPS fix for the receiver, map, and feeder coordinates.

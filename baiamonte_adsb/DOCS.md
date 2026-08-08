@@ -16,6 +16,8 @@ The default configuration enables dump1090, FlightAware, FlightRadar24, and the 
 
 The receiver location defaults to the Home Assistant home latitude, longitude, and elevation. These values are resolved at startup and are not sent anywhere except to feeder services you explicitly enable.
 
+The receiver settings expose the RTL-SDR device index or serial, gain, oscillator correction in PPM, and optional bias tee. Leave gain on `auto`, PPM on `0`, and bias tee off unless the antenna hardware requires different values.
+
 ## USB GPS location
 
 The app automatically looks for an attached NMEA USB GPS on `/dev/ttyACM*`, `/dev/ttyUSB*`, and `/dev/serial/by-id/*`. A recent GPS fix becomes the receiver location used by dump1090, the Baiamonte maps, distance ranking, and feeder services. If no valid fix arrives during the configured startup wait, the app uses the Home Assistant location.
@@ -40,7 +42,7 @@ Obtain credentials directly from each portal. The dashboard deliberately shows o
 ## Interfaces
 
 - Home Assistant ingress on internal port `8099`: branded Baiamonte operations dashboard.
-- Local network `http://HOME_ASSISTANT_IP:8998/display`: fullscreen geographic TV map with the 10 closest positioned aircraft.
+- Local network `http://HOME_ASSISTANT_IP:8998/tv`: fullscreen geographic TV map with the 10 closest positioned aircraft. `/display` remains an alias for existing dashboards.
 - Local network `http://HOME_ASSISTANT_IP:8998/api/aircraft`: distance-ranked JSON feed containing receiver position, counts, and current aircraft.
 - Optional port `8080`: original receiver map supplied by the feeder image.
 - Optional port `8754`: FlightRadar24 feeder status.
@@ -56,13 +58,15 @@ The geographic background uses OpenStreetMap tiles and therefore requires networ
 
 The geographic maps can display the latest precipitation radar from RainViewer. RainViewer combines Italian Civil Protection and regional radar sources and covers Sicily. The app caches the current radar frame and respects the provider's current public API limits.
 
-The overview map can be dragged to move around Sicily and zoomed with the mouse wheel or `+` and `−` controls. Select **Reset** to return to the automatic view that fits the receiver and current aircraft. The TV map remains fixed so accidental kiosk input cannot move it.
+The Overview and TV maps can be dragged to move around Sicily and zoomed with a pinch gesture, mouse wheel, or `+` and `−` controls. Select **Reset** to return to the automatic view that fits the receiver and current aircraft. Both maps use the same controls.
 
 - **Live rain radar on dashboard** controls the map inside Home Assistant and is enabled by default.
 - **Live rain radar on TV** controls the fullscreen display independently and is disabled by default.
 - **Weather overlay opacity** controls how strongly the radar appears over the Baiamonte basemap.
 
-The browser displaying the map needs internet access to RainViewer. If the weather service is temporarily unavailable, aircraft and the base map continue working normally. Weather radar is informational and must not be used for aviation safety decisions.
+Map and RainViewer requests are proxied through the app so restricted TV browsers do not need direct cross-origin tile access. The TV layout includes a flexbox fallback for Samsung/Tizen models whose browser predates CSS Grid. If the weather service is temporarily unavailable, aircraft and the base map continue working normally. Weather radar is informational and must not be used for aviation safety decisions.
+
+The three shared navigation pages are **Overview**, **Live traffic**, and **Watch area**. Watch Area includes the receiver log, radio profile, GPS source, and feeder portal status.
 
 ## Data ports
 

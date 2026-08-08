@@ -10,6 +10,7 @@ import os
 import re
 import socket
 import time
+from collections import deque
 from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -29,6 +30,8 @@ AIRCRAFT_FILES = (
     Path("/run/readsb/aircraft.json"),
 )
 GPS_LOCATION_FILE = Path(os.getenv("BAIAMONTE_GPS_JSON", "/run/baiamonte/gps.json"))
+RECEIVER_LOG = deque(maxlen=80)
+receiver_signature = None
 PORTALS = (
     ("FlightAware", "SERVICE_ENABLE_PIAWARE", "PIAWARE_FEEDER_DASH_ID"),
     ("FlightRadar24", "SERVICE_ENABLE_FR24FEED", "FR24FEED_FR24KEY"),
@@ -243,6 +246,7 @@ def clean_aircraft(record: dict, reference_lat: float | None = None, reference_l
 
 
 def status_payload() -> dict:
+    global receiver_signature
     raw, source = read_aircraft()
     location = current_location()
     site_lat = location["lat"]
@@ -272,16 +276,29 @@ def status_payload() -> dict:
             source_age = max(0, round(now - Path(source).stat().st_mtime, 1))
         except OSError:
             pass
+    receiver_info = {
+        "enabled": receiver,
+        "ready": receiver and decoder_ready,
+        "source_age": source_age,
+        "messages": raw.get("messages", 0),
+        "map_ready": tcp_ready(8080),
+        "source": source,
+        "device": os.getenv("RECEIVER_DEVICE_INDEX", "0"),
+        "gain": os.getenv("RECEIVER_GAIN", "auto"),
+        "ppm": os.getenv("RECEIVER_PPM", "0"),
+        "bias_tee": enabled("RECEIVER_BIAS_TEE", False),
+    }
+    signature = (receiver_info["ready"], receiver_info["source"], location.get("source"))
+    if signature != receiver_signature:
+        state = "online" if receiver_info["ready"] else "starting" if receiver else "disabled"
+        message = f"1090 MHz receiver {state} · {receiver_info['messages']} messages · location {location.get('source', 'unknown')}"
+        RECEIVER_LOG.appendleft({"time": now, "message": message})
+        receiver_signature = signature
     return {
         "generated_at": now,
         "site": os.getenv("HTML_SITE_NAME", "Tenuta Baiamonte Airspace"),
-        "receiver": {
-            "enabled": receiver,
-            "ready": receiver and decoder_ready,
-            "source_age": source_age,
-            "messages": raw.get("messages", 0),
-            "map_ready": tcp_ready(8080),
-        },
+        "receiver": receiver_info,
+        "receiver_log": list(RECEIVER_LOG),
         "location": location,
         "counts": {"aircraft": len(records), "positioned": positioned},
         "aircraft": records[:250],
@@ -370,9 +387,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_bytes(body, "application/json")
             return
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
-        if relative == "display":
+        if relative in {"display", "tv"}:
             relative = "display.html"
-        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
+        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "detail-theme.css", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
             relative = "index.html"
         target = WEB_ROOT / relative
         try:

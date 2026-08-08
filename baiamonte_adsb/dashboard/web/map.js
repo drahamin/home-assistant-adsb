@@ -1,4 +1,15 @@
 (() => {
+  // Samsung Tizen 2017 browsers use Chromium 47, before the DOM convenience
+  // methods used by newer browsers were added.
+  if (!Element.prototype.append) Element.prototype.append = function() {
+    for (let index = 0; index < arguments.length; index += 1) this.appendChild(arguments[index]);
+  };
+  if (!Element.prototype.prepend) Element.prototype.prepend = function(node) {
+    this.insertBefore(node, this.firstChild);
+  };
+  if (!Element.prototype.after) Element.prototype.after = function(node) {
+    if (this.parentNode) this.parentNode.insertBefore(node, this.nextSibling);
+  };
   const TILE_SIZE = 256;
   const MIN_LATITUDE = -85.05112878;
   const MAX_LATITUDE = 85.05112878;
@@ -11,7 +22,7 @@
   function worldPoint(latitude, longitude, zoom) {
     const latitudeClamped = Math.max(MIN_LATITUDE, Math.min(MAX_LATITUDE, latitude));
     const sine = Math.sin(latitudeClamped * Math.PI / 180);
-    const scale = TILE_SIZE * 2 ** zoom;
+    const scale = TILE_SIZE * Math.pow(2, zoom);
     return {
       x: (longitude + 180) / 360 * scale,
       y: (0.5 - Math.log((1 + sine) / (1 - sine)) / (4 * Math.PI)) * scale,
@@ -19,7 +30,7 @@
   }
 
   function geographicPoint(x, y, zoom) {
-    const scale = TILE_SIZE * 2 ** zoom;
+    const scale = TILE_SIZE * Math.pow(2, zoom);
     const longitude = x / scale * 360 - 180;
     const mercator = Math.PI * (1 - 2 * y / scale);
     const latitude = Math.atan(Math.sinh(mercator)) * 180 / Math.PI;
@@ -30,7 +41,7 @@
     return point && Number.isFinite(point.lat) && Number.isFinite(point.lon);
   }
 
-  async function latestWeatherFrame() {
+  function latestWeatherFrame() {
     if (weatherMetadata && Date.now() - weatherFetchedAt < WEATHER_CACHE_MS) return weatherMetadata;
     if (!weatherRequest) {
       weatherRequest = fetch(WEATHER_METADATA_URL, {cache: 'no-store'})
@@ -39,14 +50,14 @@
           return response.json();
         })
         .then(payload => {
-          const frames = payload?.radar?.past || [];
+          const frames = payload && payload.radar && payload.radar.past || [];
           const latest = frames[frames.length - 1];
-          if (!payload.host || !latest?.path) throw new Error('RainViewer returned no radar frame');
+          if (!payload.host || !latest || !latest.path) throw new Error('RainViewer returned no radar frame');
           weatherFetchedAt = Date.now();
-          weatherMetadata = {host: payload.host, ...latest};
+          weatherMetadata = Object.assign({host: payload.host}, latest);
           return weatherMetadata;
         })
-        .finally(() => { weatherRequest = null; });
+        .then(payload => { weatherRequest = null; return payload; }, error => { weatherRequest = null; throw error; });
     }
     return weatherRequest;
   }
@@ -58,6 +69,8 @@
       this.manualCenter = null;
       this.manualZoom = null;
       this.currentView = null;
+      this.pointers = {};
+      this.pinchDistance = 0;
       this.tiles = container.querySelector('.geo-tiles') || document.createElement('div');
       this.tiles.className = 'geo-tiles';
       if (!this.tiles.parentNode) container.prepend(this.tiles);
@@ -81,7 +94,8 @@
       this.hint.textContent = 'Drag to move · Scroll or + / − to zoom';
       this.container.append(this.controls, this.hint);
       this.controls.addEventListener('click', event => {
-        const action = event.target.closest('button')?.dataset.mapAction;
+        const button = event.target.closest('button');
+        const action = button ? button.dataset.mapAction : null;
         if (!action || !this.currentView) return;
         if (action === 'reset') {
           this.manualCenter = null;
@@ -105,15 +119,30 @@
         if (!this.currentView || event.target.closest('button,a')) return;
         this.container.setPointerCapture(event.pointerId);
         this.container.classList.add('dragging');
+        this.pointers[event.pointerId] = {x: event.clientX, y: event.clientY};
         this.dragStart = {
           x: event.clientX,
           y: event.clientY,
           world: worldPoint(this.currentView.center.lat, this.currentView.center.lon, this.currentView.zoom),
           zoom: this.currentView.zoom,
         };
+        const points = Object.keys(this.pointers).map(key => this.pointers[key]);
+        if (points.length === 2) this.pinchDistance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
       });
       this.container.addEventListener('pointermove', event => {
-        if (!this.dragStart) return;
+        if (!this.pointers[event.pointerId] || !this.dragStart) return;
+        this.pointers[event.pointerId] = {x: event.clientX, y: event.clientY};
+        const points = Object.keys(this.pointers).map(key => this.pointers[key]);
+        if (points.length === 2) {
+          const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+          if (this.pinchDistance && Math.abs(distance - this.pinchDistance) > 32) {
+            this.manualCenter = this.currentView.center;
+            this.manualZoom = Math.max(5, Math.min(12, this.currentView.zoom + (distance > this.pinchDistance ? 1 : -1)));
+            this.pinchDistance = distance;
+            this.notifyViewChange();
+          }
+          return;
+        }
         const world = {
           x: this.dragStart.world.x - (event.clientX - this.dragStart.x),
           y: this.dragStart.world.y - (event.clientY - this.dragStart.y),
@@ -122,12 +151,44 @@
         this.manualZoom = this.dragStart.zoom;
         this.notifyViewChange();
       });
-      const stopDragging = () => {
+      const stopDragging = event => {
+        delete this.pointers[event.pointerId];
+        this.pinchDistance = 0;
         this.dragStart = null;
-        this.container.classList.remove('dragging');
+        if (!Object.keys(this.pointers).length) this.container.classList.remove('dragging');
       };
       this.container.addEventListener('pointerup', stopDragging);
       this.container.addEventListener('pointercancel', stopDragging);
+      this.container.addEventListener('touchstart', event => {
+        if (!this.currentView) return;
+        const touches = event.touches;
+        if (touches.length === 1) {
+          this.touchStart = {x: touches[0].clientX, y: touches[0].clientY,
+            world: worldPoint(this.currentView.center.lat, this.currentView.center.lon, this.currentView.zoom), zoom: this.currentView.zoom};
+        } else if (touches.length === 2) {
+          this.touchDistance = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+        }
+      }, false);
+      this.container.addEventListener('touchmove', event => {
+        if (!this.currentView) return;
+        event.preventDefault();
+        const touches = event.touches;
+        if (touches.length === 2) {
+          const distance = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+          if (this.touchDistance && Math.abs(distance - this.touchDistance) > 32) {
+            this.manualCenter = this.currentView.center;
+            this.manualZoom = Math.max(5, Math.min(12, this.currentView.zoom + (distance > this.touchDistance ? 1 : -1)));
+            this.touchDistance = distance;
+            this.notifyViewChange();
+          }
+        } else if (touches.length === 1 && this.touchStart) {
+          const world = {x: this.touchStart.world.x - (touches[0].clientX - this.touchStart.x), y: this.touchStart.world.y - (touches[0].clientY - this.touchStart.y)};
+          this.manualCenter = geographicPoint(world.x, world.y, this.touchStart.zoom);
+          this.manualZoom = this.touchStart.zoom;
+          this.notifyViewChange();
+        }
+      }, false);
+      this.container.addEventListener('touchend', () => { this.touchStart = null; this.touchDistance = 0; }, false);
     }
 
     notifyViewChange() {
@@ -159,12 +220,12 @@
       const height = this.container.clientHeight || 500;
       const safeCenter = usablePoint(center) ? center : {lat: 37.847, lon: 14.925};
       const automaticZoom = this.chooseZoom(safeCenter, points, width, height);
-      const zoom = this.manualZoom ?? automaticZoom;
-      const viewCenter = this.manualCenter ?? safeCenter;
+      const zoom = this.manualZoom === null ? automaticZoom : this.manualZoom;
+      const viewCenter = this.manualCenter === null ? safeCenter : this.manualCenter;
       const centerWorld = worldPoint(viewCenter.lat, viewCenter.lon, zoom);
       const left = centerWorld.x - width / 2;
       const top = centerWorld.y - height / 2;
-      const tileCount = 2 ** zoom;
+      const tileCount = Math.pow(2, zoom);
       const minX = Math.floor(left / TILE_SIZE);
       const maxX = Math.floor((left + width) / TILE_SIZE);
       const minY = Math.max(0, Math.floor(top / TILE_SIZE));
@@ -172,7 +233,7 @@
       const safeStyle = ['standard', 'humanitarian', 'topographic', 'dark', 'satellite'].includes(style) ? style : 'standard';
       this.tiles.dataset.style = safeStyle;
 
-      this.tiles.replaceChildren();
+      this.tiles.innerHTML = '';
       for (let tileY = minY; tileY <= maxY; tileY += 1) {
         for (let tileX = minX; tileX <= maxX; tileX += 1) {
           const wrappedX = ((tileX % tileCount) + tileCount) % tileCount;
@@ -230,30 +291,29 @@
       if (!visible) this.signature = '';
     }
 
-    async render(view, configuration = {}) {
+    render(view, configuration = {}) {
       if (!configuration.enabled) {
         this.setVisible(false);
-        this.layer.replaceChildren();
+        this.layer.innerHTML = '';
         return;
       }
       this.status.hidden = false;
       this.status.textContent = 'Loading live rain radar…';
-      try {
-        const frame = await latestWeatherFrame();
+      return latestWeatherFrame().then(frame => {
         if (!configuration.enabled) return;
         const sourceZoom = Math.min(view.zoom, 7);
-        const zoomScale = 2 ** (view.zoom - sourceZoom);
+        const zoomScale = Math.pow(2, view.zoom - sourceZoom);
         const renderedTileSize = TILE_SIZE * zoomScale;
-        const tileCount = 2 ** sourceZoom;
+        const tileCount = Math.pow(2, sourceZoom);
         const minX = Math.floor(view.left / renderedTileSize);
         const maxX = Math.floor((view.left + view.width) / renderedTileSize);
         const minY = Math.max(0, Math.floor(view.top / renderedTileSize));
         const maxY = Math.min(tileCount - 1, Math.floor((view.top + view.height) / renderedTileSize));
-        const opacity = Math.max(0.1, Math.min(1, Number(configuration.opacity ?? 0.55)));
+        const opacity = Math.max(0.1, Math.min(1, Number(configuration.opacity === null || configuration.opacity === undefined ? 0.55 : configuration.opacity)));
         const signature = [frame.path, sourceZoom, minX, maxX, minY, maxY,
           Math.round(view.left), Math.round(view.top), opacity].join(':');
         if (signature !== this.signature) {
-          this.layer.replaceChildren();
+          this.layer.innerHTML = '';
           this.layer.style.opacity = opacity;
           for (let tileY = minY; tileY <= maxY; tileY += 1) {
             for (let tileX = minX; tileX <= maxX; tileX += 1) {
@@ -274,13 +334,13 @@
         this.setVisible(true);
         const timestamp = new Date(frame.time * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
         this.status.textContent = `LIVE RAIN · ${timestamp}`;
-      } catch (error) {
+      }).catch(error => {
         this.layer.hidden = true;
         this.attribution.hidden = true;
         this.status.hidden = false;
         this.status.textContent = 'Rain radar unavailable';
         console.error('Weather overlay unavailable', error);
-      }
+      });
     }
   }
 

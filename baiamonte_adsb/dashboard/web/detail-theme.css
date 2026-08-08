@@ -1,0 +1,10 @@
+.area-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.receiver-log{max-height:250px;overflow:auto;margin-top:14px}
+.receiver-log-row{display:grid;grid-template-columns:70px 1fr;gap:10px;padding:9px 0;border-top:1px solid #eee5da;font-size:9px}
+.receiver-log-row time{color:#9a8d7d}.receiver-log-row span{color:#574e44}
+.radio-profile{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.radio-profile div{padding:10px;border-radius:9px;background:#f3ede4;display:flex;flex-direction:column}.radio-profile small{font-size:8px;color:#8c8172}.radio-profile b{margin-top:4px;font-size:11px}
+.aircraft-grid{gap:12px}.aircraft-card{padding:14px;border-radius:15px}.aircraft-card h3{margin:10px 0 3px;font-size:15px}
+.aircraft-identity{display:flex;align-items:center;gap:8px}.card-flag{font-size:21px}.airline-mark{display:grid;place-items:center;min-width:38px;height:24px;padding:0 7px;border-radius:6px;background:linear-gradient(135deg,#17130f,#8b4513);color:#f3d978;font-size:8px;font-weight:900;letter-spacing:.08em}
+.aircraft-metrics{grid-template-columns:repeat(4,1fr);gap:6px;margin-top:11px}.aircraft-metrics b{font-size:10px;margin-top:4px}.aircraft-detail{margin-top:9px;padding:8px 10px;border-radius:9px;background:#f3ede4;color:#766b5e;font-size:9px;line-height:1.5}
+@media(max-width:760px){.area-grid{grid-template-columns:1fr}.aircraft-metrics{grid-template-columns:1fr 1fr}}
