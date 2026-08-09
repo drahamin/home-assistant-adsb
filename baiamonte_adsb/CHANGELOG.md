@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1
+
+- Brightens the fullscreen ADS-B basemap to the proven Rahamin TV profile while retaining the Baiamonte dark interface, altitude colors, labels, and weather overlay.
+
 ## 1.5.0
 
 - Replaces triangular map markers with compact, track-oriented top-down aircraft silhouettes.
