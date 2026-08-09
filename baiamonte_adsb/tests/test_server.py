@@ -32,6 +32,16 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('id="fleet"', html)
         self.assertIn("nearest_aircraft", script)
 
+    def test_tv_map_is_bright_and_aircraft_rows_are_compact(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        html = (web / "display.html").read_text()
+        styles = (web / "display.css").read_text()
+        self.assertIn('href="display.css?v=211"', html)
+        self.assertIn("brightness(1.16)", styles)
+        self.assertIn("flex:0 0 360px", styles)
+        self.assertIn("padding:8px 5px", styles)
+        self.assertIn("grid-template-columns:minmax(0,1fr) clamp(300px,23vw,390px)", styles)
+
     def test_dashboard_and_tv_use_shared_altitude_aircraft_icons(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
         map_script = (web / "map.js").read_text()
