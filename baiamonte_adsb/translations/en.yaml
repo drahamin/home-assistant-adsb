@@ -23,6 +23,51 @@ configuration:
   RECEIVER_BIAS_TEE:
     name: ADS-B Bias Tee
     description: Supply antenna power through supported hardware only when required.
+  AIRBAND_ENABLED:
+    name: VHF airband receiver
+    description: Use a second RTL-SDR to scan civil aviation voice frequencies and play them inside the dashboard.
+  VHF_DEVICE:
+    name: VHF radio device
+    description: RTL-SDR device index for VHF. Keep this different from the ADS-B Radio Device; the default second receiver is 1.
+  VHF_PPM:
+    name: VHF frequency correction
+    description: Oscillator correction for the VHF receiver in parts per million.
+  AIRBAND_GAIN:
+    name: VHF radio gain
+    description: Tuner gain in dB for the VHF receiver.
+  AIRBAND_SQUELCH:
+    name: VHF squelch
+    description: Signal threshold in negative dBFS. A value near -28 is a useful starting point.
+  AIRBAND_FREQUENCIES:
+    name: VHF frequencies
+    description: Comma-separated civil airband frequencies from 118 to 137 MHz.
+  AIRBAND_LABELS:
+    name: VHF channel names
+    description: Comma-separated labels in the same order as the VHF frequencies.
+  AIRBAND_MOUNT:
+    name: Local VHF stream name
+    description: Internal Icecast audio mount used by the Baiamonte dashboard.
+  AIRBAND_SOURCE_PASSWORD:
+    name: Local VHF source password
+    description: Optional. Leave blank to generate and retain a private password automatically.
+  AIRNAV_VHF_ENABLED:
+    name: Share VHF with AirNav
+    description: Send the receive-only airband audio feed to AirNav using credentials supplied by AirNav.
+  AIRNAV_VHF_SERVER:
+    name: AirNav VHF server
+    description: Icecast server hostname supplied by AirNav.
+  AIRNAV_VHF_PORT:
+    name: AirNav VHF port
+    description: Icecast port supplied by AirNav.
+  AIRNAV_VHF_USERNAME:
+    name: AirNav VHF username
+    description: Icecast source username supplied by AirNav, normally source.
+  AIRNAV_VHF_PASSWORD:
+    name: AirNav VHF password
+    description: Private VHF sharing password supplied by AirNav.
+  AIRNAV_VHF_MOUNT:
+    name: AirNav VHF mount
+    description: VHF serial key or Icecast mount supplied by AirNav.
   GPS_USE_USB:
     name: Use attached USB GPS
     description: Automatically use a recent NMEA GPS fix for the receiver, map, and feeder coordinates.
@@ -44,9 +89,24 @@ configuration:
   WEATHER_OVERLAY_OPACITY:
     name: Weather overlay opacity
     description: Visibility percentage from 10 to 100 for the rain radar layer.
+  OPEN_METEO:
+    name: Local weather conditions
+    description: Show live current conditions and a five-day forecast from Open-Meteo for the GPS receiver position.
+  AVIATION_WEATHER:
+    name: Sicily aviation weather
+    description: Show current METAR conditions for Catania and nearby eastern Sicily airports from AviationWeather.gov.
   MAP_STYLE:
     name: Base map style
     description: Choose Standard, Humanitarian, Topographic, Dark, or Satellite tiles for the dashboard and TV maps.
+  HOME_AIRPORT:
+    name: Home airport
+    description: ICAO airport used for the arrivals and departures board. Catania Fontanarossa is LICC.
+  FLIGHTAWARE_ENRICHMENT:
+    name: FlightAware live flight details
+    description: Use optional AeroAPI data for the airport board and aircraft details. Free OpenSky and ADSBDB data remain available when disabled.
+  FLIGHTAWARE_AEROAPI_KEY:
+    name: FlightAware AeroAPI key
+    description: Optional private API key for live schedules, gates, delay status, and enhanced flight details.
   PIAWARE_FEEDER_DASH_ID:
     name: FlightAware feeder ID
     description: Unique feeder ID from your FlightAware account.
@@ -78,3 +138,4 @@ network:
   8080/tcp: Receiver map
   8754/tcp: FlightRadar24 status
   30053/tcp: Plane Finder status
+  8000/tcp: Optional direct VHF audio stream
