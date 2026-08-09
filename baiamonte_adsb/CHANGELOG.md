@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1
+
+- Brightens the fullscreen `/tv` basemap without changing the Home Assistant dashboard theme or weather opacity.
+- Narrows the TV aircraft rail and compacts its header, flags, rows, metadata, and footer while retaining all flight details.
+- Preserves flexbox fallbacks for older Samsung/Tizen browsers alongside the compact grid layout.
+
 ## 2.1.0
 
 - Adds automatic browser light/dark mode to the Home Assistant ADS-B dashboard.
