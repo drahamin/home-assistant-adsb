@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0
+
+- Adds a second-RTL-SDR, receive-only VHF airband receiver using RTLSDR-Airband and a private local Icecast stream.
+- Adds a branded ingress VHF player, Catania channel scan list, radio health, same-device conflict warning, and optional AirNav VHF forwarding.
+- Adds GPS-positioned Open-Meteo conditions, five-day weather, and eastern Sicily METAR reports.
+- Adds a Catania airport board with free OpenSky observed movements and optional FlightAware AeroAPI schedules and gates.
+- Adds on-demand, no-key ADSBDB aircraft and route enrichment to Live traffic cards.
+- Keeps Home Assistant responsible for networking, updates, restart controls, and all secret storage.
+
 ## 1.5.1
 
 - Brightens the fullscreen ADS-B basemap to the proven Rahamin TV profile while retaining the Baiamonte dark interface, altitude colors, labels, and weather overlay.

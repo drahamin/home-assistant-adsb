@@ -1,0 +1,9 @@
+#!/command/with-contenv bash
+source /export-env-from-config.sh
+
+if [[ "${AIRBAND_ENABLED:-false}" != "true" ]]; then
+  exec tail -f /dev/null
+fi
+
+python3 /opt/baiamonte/airband/render_config.py
+exec icecast2 -c /etc/icecast2/icecast.xml

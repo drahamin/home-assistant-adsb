@@ -1,6 +1,6 @@
 # Baiamonte ADS-B
 
-Baiamonte ADS-B is a fully branded Home Assistant app for receiving local 1090 MHz aircraft broadcasts and sharing them with multiple flight-tracking networks. It keeps the proven multi-portal feeder engine while adding a Tenuta Baiamonte operations dashboard, a live geographic aircraft map with optional precipitation radar, automatic USB GPS location, Home Assistant ingress, and estate-wide visual identity.
+Baiamonte ADS-B is a fully branded Home Assistant app for receiving local 1090 MHz aircraft broadcasts and sharing them with multiple flight-tracking networks. It keeps the proven multi-portal feeder engine while adding a Tenuta Baiamonte operations dashboard, a live geographic aircraft map with optional precipitation radar, automatic USB GPS location, a receive-only VHF airband stream, Sicily weather and airport operations, Home Assistant ingress, and estate-wide visual identity.
 
 ## Supported networks
 
@@ -22,6 +22,8 @@ Add this repository to the Home Assistant App Store:
 `https://github.com/drahamin/home-assistant-adsb`
 
 Install **Baiamonte ADS-B**, connect a compatible RTL-SDR receiver, complete the app configuration, start the app, and enable **Show in sidebar**.
+
+For VHF aviation audio, connect a second RTL-SDR. Device 0 remains the default ADS-B receiver and device 1 becomes the default VHF receiver; one radio cannot perform both roles at once.
 
 See [baiamonte_adsb/DOCS.md](baiamonte_adsb/DOCS.md) for configuration, portal keys, ports, and receiver guidance.
 

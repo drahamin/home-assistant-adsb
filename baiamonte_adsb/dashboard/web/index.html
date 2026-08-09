@@ -10,6 +10,9 @@
   <link rel="stylesheet" href="weather-theme.css?v=130">
   <link rel="stylesheet" href="interaction-theme.css?v=130">
   <link rel="stylesheet" href="detail-theme.css?v=141">
+  <link rel="stylesheet" href="airband-theme.css?v=200">
+  <link rel="stylesheet" href="operations-theme.css?v=200">
+  <link rel="stylesheet" href="enrichment-theme.css?v=200">
 </head>
 <body>
   <svg class="sprite" aria-hidden="true"><defs>
@@ -18,6 +21,9 @@
     <symbol id="i-radar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12 18.5 5.5M12 3v2M21 12h-2M12 21v-2M3 12h2"/><circle cx="16.5" cy="8" r="1"/></symbol>
     <symbol id="i-network" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="m7 11 10-4M7 13l10 4"/></symbol>
     <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M18.2 9A7 7 0 0 0 6.4 6.4L4 9M5.8 15A7 7 0 0 0 17.6 17.6L20 15"/></symbol>
+    <symbol id="i-radio" viewBox="0 0 24 24"><path d="m5 8 14-4M6 10h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z"/><circle cx="9" cy="15.5" r="3"/><path d="M15 14h3M15 17h3"/></symbol>
+    <symbol id="i-weather" viewBox="0 0 24 24"><path d="M7 18h11a4 4 0 0 0 .4-8A6 6 0 0 0 7 8a5 5 0 0 0 0 10Z"/><path d="M8 3v2M3.5 6.5 5 8M13 4l-1 2"/></symbol>
+    <symbol id="i-airport" viewBox="0 0 24 24"><path d="M4 20h16M6 20V9h12v11M9 13h2M13 13h2M9 17h2M13 17h2M9 9V5h6v4"/></symbol>
   </defs></svg>
   <div class="shell">
     <aside>
@@ -25,6 +31,9 @@
       <nav>
         <button class="nav active" data-page="overview"><svg><use href="#i-grid"/></svg>Overview</button>
         <button class="nav" data-page="aircraft"><svg><use href="#i-plane"/></svg>Live traffic <em id="nav-count">0</em></button>
+        <button class="nav" data-page="airband"><svg><use href="#i-radio"/></svg>VHF airband <em id="vhf-nav-state">Off</em></button>
+        <button class="nav" data-page="weather"><svg><use href="#i-weather"/></svg>Weather</button>
+        <button class="nav" data-page="airport"><svg><use href="#i-airport"/></svg>Airport board</button>
         <button class="nav" data-page="area"><svg><use href="#i-network"/></svg>Watch area</button>
       </nav>
       <div class="estate-note"><i id="side-light"></i><span><b>1090 MHz receiver</b><small id="side-status">Starting the airspace watch</small></span></div>
@@ -41,10 +50,22 @@
         <div class="lower-grid"><article class="panel"><div class="panel-head"><div><p>RECENT CONTACTS</p><h3>Aircraft nearest in time</h3></div><button class="text-button" data-go="aircraft">View all →</button></div><div id="recent-aircraft" class="recent-list"></div></article><article class="panel"><div class="panel-head"><div><p>FEEDER NETWORK</p><h3>Portal readiness</h3></div><span class="route-icon"><svg><use href="#i-network"/></svg></span></div><div id="portal-summary" class="portal-list"></div></article></div>
       </section>
       <section class="page" id="aircraft"><div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>LIVE TRAFFIC</p><h2>Live traffic</h2><span>Flag, airline or operator, registration, aircraft type, altitude, speed, track, and radio details.</span></div><span class="badge" id="aircraft-badge">0 active</span></div><div id="aircraft-grid" class="aircraft-grid"></div></section>
+      <section class="page" id="airband">
+        <div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>RECEIVE-ONLY AVIATION AUDIO</p><h2>VHF airband</h2><span>Listen to the second RTL-SDR scanning configured civil aviation channels.</span></div><span class="badge neutral" id="vhf-badge">Disabled</span></div>
+        <div class="airband-grid">
+          <article class="airband-player"><div class="airband-player-copy"><span class="radio-kicker"><i id="vhf-light"></i> TENUTA BAIAMONTE RADIO</span><h3 id="vhf-title">VHF receiver disabled</h3><p id="vhf-detail">Enable the VHF airband receiver in the add-on configuration to begin.</p><audio id="vhf-player" controls preload="none"><source src="api/airband-stream" type="audio/mpeg"></audio><small>Receive-only audio · Civil aviation band · Secrets remain inside Home Assistant</small></div><div class="radio-dial"><svg><use href="#i-radio"/></svg><b>VHF</b><span>118–137 MHz</span></div></article>
+          <article class="panel"><p>RADIO PROFILE</p><h3>Second receiver</h3><div id="vhf-profile" class="radio-profile"></div><div class="vhf-warning hidden" id="vhf-conflict">The ADS-B and VHF roles use the same radio. Assign VHF to a different RTL-SDR device.</div></article>
+        </div>
+        <article class="panel channel-panel"><div class="panel-head"><div><p>SCAN LIST</p><h3>Catania and eastern Sicily aviation channels</h3></div><span class="live-pill"><i></i>RECEIVE ONLY</span></div><div id="vhf-channels" class="vhf-channels"></div></article>
+      </section>
       <section class="page" id="area"><div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>RECEIVER AND SHARING</p><h2>Watch area</h2><span>Receiver health, radio configuration, GPS position, and feeder readiness.</span></div><span class="badge neutral">Configuration</span></div><div class="area-grid"><article class="panel"><p>RECEIVER LOG</p><h3>Hardware activity</h3><div id="receiver-log" class="receiver-log"></div></article><article class="panel"><p>RADIO PROFILE</p><h3>1090 MHz receiver</h3><div id="radio-profile" class="radio-profile"></div></article></div><div id="portal-grid" class="portal-grid"></div><article class="panel privacy"><span class="route-icon"><svg><use href="#i-network"/></svg></span><div><p>BAIAMONTE DATA POLICY</p><h3>Your keys stay inside Home Assistant</h3><span>This dashboard reports only whether a portal is enabled and configured. It never exposes sharing keys, feeder IDs, UUIDs, or sharecodes.</span></div></article></section>
+      <section class="page" id="weather"><div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>SICILY WEATHER</p><h2>Estate and aviation weather</h2><span>GPS-positioned conditions, five-day outlook, live rain radar, and nearby METAR reports.</span></div><span class="badge neutral" id="weather-source">Loading</span></div><div id="weather-current" class="weather-current"></div><article class="panel operations-panel"><div class="panel-head"><div><p>FIVE-DAY OUTLOOK</p><h3>Tenuta Baiamonte</h3></div></div><div id="weather-forecast" class="weather-forecast"></div></article><article class="panel operations-panel"><div class="panel-head"><div><p>AVIATION WEATHER</p><h3>Eastern Sicily METAR</h3></div></div><div id="metar-grid" class="metar-grid"></div></article></section>
+      <section class="page" id="airport"><div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>CATANIA MOVEMENTS</p><h2><span id="airport-code">LICC</span> airport board</h2><span id="airport-source">OpenSky observed movements</span></div><button class="badge board-refresh" id="airport-refresh">Refresh board</button></div><div class="airport-columns"><article class="panel"><div class="panel-head"><div><p>ARRIVALS</p><h3>Recent and expected inbound</h3></div></div><div id="arrival-board" class="movement-board"><div class="empty">Open the board to load movements.</div></div></article><article class="panel"><div class="panel-head"><div><p>DEPARTURES</p><h3>Recent and expected outbound</h3></div></div><div id="departure-board" class="movement-board"><div class="empty">Open the board to load movements.</div></div></article></div><p class="airport-notice" id="airport-notice">Free mode shows observed OpenSky movements. Optional FlightAware AeroAPI adds schedules, gates, and live status.</p></section>
     </main>
   </div>
   <script src="map.js?v=150"></script>
-  <script src="app.js?v=150"></script>
+  <script src="airport.js?v=200"></script>
+  <script src="app.js?v=200"></script>
+  <script src="operations.js?v=200"></script>
 </body>
 </html>

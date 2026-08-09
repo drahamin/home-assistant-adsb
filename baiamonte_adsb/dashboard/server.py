@@ -15,7 +15,8 @@ from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.error import HTTPError
+from urllib.parse import parse_qs, quote, unquote, urlsplit
 from urllib.request import Request, urlopen
 
 
@@ -84,6 +85,9 @@ AIRCRAFT_CACHE_SECONDS = 30
 last_aircraft_payload: dict | None = None
 last_aircraft_source: str | None = None
 last_aircraft_read_at = 0.0
+EXTERNAL_CACHE: dict[str, tuple[float, object]] = {}
+ENRICHMENT_CACHE_SECONDS = 3600
+AIRPORT_CACHE_SECONDS = 120
 
 
 def enabled(name: str, default: bool = False) -> bool:
@@ -157,6 +161,203 @@ def tcp_ready(port: int) -> bool:
             return True
     except OSError:
         return False
+
+
+def airband_status() -> dict:
+    """Return VHF health and public channel details without exposing credentials."""
+    is_enabled = enabled("AIRBAND_ENABLED", False)
+    frequencies = [part.strip() for part in os.getenv("AIRBAND_FREQUENCIES", "").split(",") if part.strip()]
+    labels = [part.strip() for part in os.getenv("AIRBAND_LABELS", "").split(",")]
+    channels = [
+        {"frequency": frequency, "label": labels[index] if index < len(labels) and labels[index] else f"Channel {index + 1}"}
+        for index, frequency in enumerate(frequencies)
+    ]
+    mount = os.getenv("AIRBAND_MOUNT", "baiamonte-airband.mp3").strip().lstrip("/")
+    server_ready = is_enabled and tcp_ready(8000)
+    local_ready = False
+    current = ""
+    listeners = 0
+    if server_ready:
+        try:
+            request = Request("http://127.0.0.1:8000/status-json.xsl", headers={"User-Agent": "Baiamonte-ADS-B/2.0"})
+            with urlopen(request, timeout=0.5) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            source = payload.get("icestats", {}).get("source", [])
+            sources = source if isinstance(source, list) else [source]
+            matching = next((item for item in sources if isinstance(item, dict) and str(item.get("listenurl", "")).rstrip("/").endswith("/" + mount)), None)
+            if matching:
+                local_ready = True
+                current = str(matching.get("title", "") or matching.get("server_description", "")).strip()
+                listeners = int(matching.get("listeners", 0) or 0)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            pass
+    adsb_device = os.getenv("RECEIVER_DEVICE_INDEX", "0").strip()
+    vhf_device = os.getenv("VHF_DEVICE", "1").strip()
+    return {
+        "enabled": is_enabled,
+        "ready": local_ready,
+        "device": vhf_device,
+        "device_conflict": is_enabled and vhf_device == adsb_device,
+        "gain": os.getenv("AIRBAND_GAIN", "28"),
+        "ppm": os.getenv("VHF_PPM", "0"),
+        "squelch": os.getenv("AIRBAND_SQUELCH", "-28"),
+        "mount": mount,
+        "channels": channels,
+        "current": current,
+        "listeners": listeners,
+        "airnav_enabled": enabled("AIRNAV_VHF_ENABLED", False),
+        "airnav_configured": all(os.getenv(name, "").strip() for name in ("AIRNAV_VHF_SERVER", "AIRNAV_VHF_PASSWORD", "AIRNAV_VHF_MOUNT")),
+    }
+
+
+def fetch_json(key: str, url: str, seconds: int, headers: dict[str, str] | None = None) -> object:
+    cached = EXTERNAL_CACHE.get(key)
+    if cached and time.time() - cached[0] < seconds:
+        return cached[1]
+    request = Request(url, headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/2.0", **(headers or {})})
+    with urlopen(request, timeout=8) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    EXTERNAL_CACHE[key] = (time.time(), payload)
+    return payload
+
+
+def supplemental_weather(location: dict) -> dict:
+    """Return live general and aviation weather appropriate for Sicily."""
+    latitude, longitude = location.get("lat"), location.get("lon")
+    result: dict[str, object] = {"current": None, "daily": None, "aviation": [], "sources": ["RainViewer"]}
+    if not isinstance(latitude, (int, float)) or not isinstance(longitude, (int, float)):
+        return result
+    if enabled("OPEN_METEO", True):
+        try:
+            url = (
+                "https://api.open-meteo.com/v1/forecast?"
+                f"latitude={latitude:.5f}&longitude={longitude:.5f}"
+                "&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,cloud_cover,"
+                "surface_pressure,visibility,weather_code,is_day,wind_speed_10m,wind_gusts_10m"
+                "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,"
+                "wind_speed_10m_max,sunrise,sunset&forecast_days=5&timezone=auto"
+            )
+            forecast = fetch_json("open-meteo", url, 300)
+            if isinstance(forecast, dict):
+                result["current"] = forecast.get("current")
+                result["daily"] = forecast.get("daily")
+                result["sources"].append("Open-Meteo")
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+    if enabled("AVIATION_WEATHER", True):
+        try:
+            observations = fetch_json(
+                "sicily-metars",
+                "https://aviationweather.gov/api/data/metar?ids=LICC,LICR,LICZ,LICB&format=json",
+                120,
+            )
+            if isinstance(observations, list):
+                result["aviation"] = [{
+                    "station": item.get("icaoId"), "category": item.get("fltCat"), "wind_direction": item.get("wdir"),
+                    "wind_speed_kt": item.get("wspd"), "visibility_sm": item.get("visib"), "altimeter_hpa": item.get("altim"),
+                    "cover": item.get("cover"), "temperature_c": item.get("temp"), "dewpoint_c": item.get("dewp"),
+                    "observed": item.get("reportTime"), "raw": item.get("rawOb"),
+                } for item in observations if isinstance(item, dict)]
+                result["sources"].append("AviationWeather.gov")
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+    return result
+
+
+def airport_info(value: object) -> dict:
+    item = value if isinstance(value, dict) else {}
+    return {
+        "icao": str(item.get("icao_code") or item.get("code_icao") or item.get("code") or ""),
+        "iata": str(item.get("iata_code") or item.get("code_iata") or ""),
+        "name": str(item.get("name") or ""),
+        "city": str(item.get("municipality") or item.get("city") or ""),
+    }
+
+
+def adsbdb_enrichment(icao: str, callsign: str) -> dict:
+    address = re.sub(r"[^0-9A-F]", "", icao.upper())
+    ident = re.sub(r"[^A-Z0-9-]", "", callsign.upper())
+    if not address and not ident:
+        raise ValueError("ICAO address or callsign required")
+    if address and ident:
+        url = f"https://api.adsbdb.com/v0/aircraft/{quote(address)}?callsign={quote(ident)}"
+    elif address:
+        url = f"https://api.adsbdb.com/v0/aircraft/{quote(address)}"
+    else:
+        url = f"https://api.adsbdb.com/v0/callsign/{quote(ident)}"
+    payload = fetch_json(f"adsbdb:{address}:{ident}", url, ENRICHMENT_CACHE_SECONDS)
+    response = payload.get("response", {}) if isinstance(payload, dict) else {}
+    aircraft = response.get("aircraft", response) if isinstance(response, dict) else {}
+    route = response.get("flightroute", response) if isinstance(response, dict) else {}
+    return {
+        "source": "ADSBDB", "ident": ident,
+        "aircraft": {"registration": str(aircraft.get("registration") or ""), "type": str(aircraft.get("icao_type") or aircraft.get("type") or ""), "manufacturer": str(aircraft.get("manufacturer") or ""), "owner": str(aircraft.get("registered_owner") or ""), "country": str(aircraft.get("registered_owner_country_name") or "")},
+        "airline": route.get("airline", {}) if isinstance(route.get("airline"), dict) else {},
+        "origin": airport_info(route.get("origin")), "destination": airport_info(route.get("destination")),
+    }
+
+
+def opensky_movements(airport: str, movement: str) -> list[dict]:
+    now = int(time.time())
+    begin = max(now - 12 * 3600, now - now % 86400)
+    endpoint = "arrival" if movement == "arrivals" else "departure"
+    try:
+        payload = fetch_json(f"opensky:{airport}:{endpoint}", f"https://opensky-network.org/api/flights/{endpoint}?airport={quote(airport)}&begin={begin}&end={now}", AIRPORT_CACHE_SECONDS)
+    except HTTPError as error:
+        if error.code == 404:
+            return []
+        raise
+    rows = []
+    for flight in payload[-30:] if isinstance(payload, list) else []:
+        if not isinstance(flight, dict):
+            continue
+        rows.append({
+            "ident": str(flight.get("callsign") or "").strip() or str(flight.get("icao24") or "").upper(),
+            "origin": {"icao": str(flight.get("estDepartureAirport") or "")},
+            "destination": {"icao": str(flight.get("estArrivalAirport") or "")},
+            "actual": flight.get("lastSeen") if movement == "arrivals" else flight.get("firstSeen"),
+            "status": "Arrived (observed)" if movement == "arrivals" else "Departed (observed)", "source": "OpenSky",
+        })
+    return sorted(rows, key=lambda row: row.get("actual") or 0, reverse=True)[:15]
+
+
+def flightaware_rows(payload: object, movement: str) -> list[dict]:
+    document = payload if isinstance(payload, dict) else {}
+    flights = document.get(movement, document.get("flights", []))
+    rows = []
+    for flight in flights if isinstance(flights, list) else []:
+        if not isinstance(flight, dict):
+            continue
+        rows.append({
+            "ident": str(flight.get("ident_iata") or flight.get("ident") or ""),
+            "origin": airport_info(flight.get("origin")), "destination": airport_info(flight.get("destination")),
+            "scheduled": flight.get("scheduled_in" if movement == "arrivals" else "scheduled_out"),
+            "estimated": flight.get("estimated_in" if movement == "arrivals" else "estimated_out"),
+            "actual": flight.get("actual_in" if movement == "arrivals" else "actual_out"),
+            "status": str(flight.get("status") or "Scheduled"), "source": "FlightAware",
+            "gate": str(flight.get("gate_destination" if movement == "arrivals" else "gate_origin") or ""),
+        })
+    return rows[:15]
+
+
+def airport_board(airport: str) -> dict:
+    code = re.sub(r"[^A-Z0-9]", "", airport.upper())
+    if not re.fullmatch(r"[A-Z0-9]{3,4}", code):
+        raise ValueError("Valid ICAO or IATA airport code required")
+    key = os.getenv("FLIGHTAWARE_AEROAPI_KEY", "").strip()
+    if enabled("FLIGHTAWARE_ENRICHMENT", False) and key:
+        headers = {"x-apikey": key}
+        arrivals = fetch_json(f"fa:{code}:arrivals", f"https://aeroapi.flightaware.com/aeroapi/airports/{quote(code)}/flights/arrivals?max_pages=1", AIRPORT_CACHE_SECONDS, headers)
+        departures = fetch_json(f"fa:{code}:departures", f"https://aeroapi.flightaware.com/aeroapi/airports/{quote(code)}/flights/departures?max_pages=1", AIRPORT_CACHE_SECONDS, headers)
+        result = {"airport": code, "source": "FlightAware AeroAPI", "live_status": True, "notice": "Live scheduled, estimated and actual flight status.", "arrivals": flightaware_rows(arrivals, "arrivals"), "departures": flightaware_rows(departures, "departures")}
+    else:
+        result = {
+            "airport": code, "source": "OpenSky observed movements", "live_status": False,
+            "notice": "Free OpenSky mode shows observed movements, not schedules or delay status.",
+            "arrivals": opensky_movements(code, "arrivals"), "departures": opensky_movements(code, "departures"),
+        }
+    result["generated_at"] = time.time()
+    return result
 
 
 MAP_TILE_PROVIDERS = {
@@ -344,6 +545,8 @@ def status_payload() -> dict:
         message = f"1090 MHz receiver {state} · {receiver_info['messages']} messages · location {location.get('source', 'unknown')}"
         RECEIVER_LOG.appendleft({"time": now, "message": message})
         receiver_signature = signature
+    weather = weather_config("dashboard")
+    weather.update(supplemental_weather(location))
     return {
         "generated_at": now,
         "site": os.getenv("HTML_SITE_NAME", "Tenuta Baiamonte Airspace"),
@@ -353,8 +556,15 @@ def status_payload() -> dict:
         "counts": {"aircraft": len(records), "positioned": positioned},
         "aircraft": records[:250],
         "portals": portals,
-        "weather": weather_config("dashboard"),
+        "weather": weather,
         "map_style": map_style(),
+        "airband": airband_status(),
+        "flight_data": {
+            "free_source": "ADSBDB + OpenSky",
+            "flightaware_enabled": enabled("FLIGHTAWARE_ENRICHMENT", False),
+            "flightaware_configured": enabled("FLIGHTAWARE_ENRICHMENT", False) and bool(os.getenv("FLIGHTAWARE_AEROAPI_KEY", "").strip()),
+            "home_airport": os.getenv("HOME_AIRPORT", "LICC").strip().upper() or "LICC",
+        },
     }
 
 
@@ -394,7 +604,51 @@ class Handler(BaseHTTPRequestHandler):
         self.do_GET()
 
     def do_GET(self) -> None:
-        path = unquote(urlsplit(self.path).path)
+        split = urlsplit(self.path)
+        path = unquote(split.path)
+        query = parse_qs(split.query)
+        if path.rstrip("/").endswith("/api/aircraft-detail") or path == "/api/aircraft-detail":
+            try:
+                payload = adsbdb_enrichment(query.get("icao", [""])[0], query.get("callsign", [""])[0])
+                self.send_bytes(json.dumps(payload, separators=(",", ":")).encode(), "application/json")
+            except (OSError, ValueError, json.JSONDecodeError) as error:
+                self.send_bytes(json.dumps({"error": str(error)}).encode(), "application/json", HTTPStatus.BAD_GATEWAY)
+            return
+        if path.rstrip("/").endswith("/api/airport-board") or path == "/api/airport-board":
+            airport = query.get("airport", [os.getenv("HOME_AIRPORT", "LICC")])[0]
+            try:
+                payload = airport_board(airport)
+                self.send_bytes(json.dumps(payload, separators=(",", ":")).encode(), "application/json")
+            except (OSError, ValueError, json.JSONDecodeError) as error:
+                self.send_bytes(json.dumps({"error": str(error)}).encode(), "application/json", HTTPStatus.BAD_GATEWAY)
+            return
+        if path.rstrip("/").endswith("/api/airband-stream") or path == "/api/airband-stream":
+            status = airband_status()
+            if not status["enabled"] or not status["ready"]:
+                self.send_error(HTTPStatus.SERVICE_UNAVAILABLE, "VHF airband stream is not ready")
+                return
+            request = Request(
+                f'http://127.0.0.1:8000/{status["mount"]}',
+                headers={"User-Agent": "Baiamonte-ADS-B/2.0", "Icy-MetaData": "0"},
+            )
+            try:
+                stream = urlopen(request, timeout=10)
+            except OSError:
+                self.send_error(HTTPStatus.BAD_GATEWAY, "VHF airband stream is unavailable")
+                return
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "audio/mpeg")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            try:
+                with stream:
+                    while chunk := stream.read(16384):
+                        self.wfile.write(chunk)
+                        self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError, TimeoutError, OSError):
+                pass
+            return
         if path.rstrip("/") == "/api/weather-maps":
             try:
                 body = fetch_weather_metadata()
@@ -439,7 +693,7 @@ class Handler(BaseHTTPRequestHandler):
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
         if relative in {"display", "tv"}:
             relative = "display.html"
-        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "detail-theme.css", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
+        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "detail-theme.css", "airband-theme.css", "operations-theme.css", "enrichment-theme.css", "airport.js", "operations.js", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
             relative = "index.html"
         target = WEB_ROOT / relative
         try:

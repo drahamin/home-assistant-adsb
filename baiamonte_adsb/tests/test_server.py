@@ -5,6 +5,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 SERVER = Path(__file__).parents[1] / "dashboard" / "server.py"
@@ -34,6 +35,41 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("BaiamonteAircraftVisual.apply", tv_script)
         self.assertNotIn("<span>▲</span>", dashboard_script)
         self.assertNotIn(">▲</i>", tv_script)
+
+    def test_dashboard_has_ingress_vhf_player_and_back_navigation(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        html = (web / "index.html").read_text()
+        script = (web / "app.js").read_text()
+        self.assertIn('id="airband"', html)
+        self.assertIn('src="api/airband-stream"', html)
+        self.assertIn('data-go="overview"', html)
+        self.assertIn("renderAirband(data.airband)", script)
+
+    def test_dashboard_includes_sicily_weather_airport_and_enrichment_views(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        html = (web / "index.html").read_text()
+        operations = (web / "operations.js").read_text()
+        self.assertIn('id="weather"', html)
+        self.assertIn('id="airport"', html)
+        self.assertIn("LICC", html)
+        self.assertIn("api/aircraft-detail", operations)
+
+    def test_supplemental_weather_uses_sicily_aviation_stations(self):
+        forecast = {"current": {"temperature_2m": 22}, "daily": {"time": ["2026-08-09"]}}
+        metars = [{"icaoId": "LICC", "fltCat": "VFR", "wspd": 8}]
+        with patch.object(dashboard, "fetch_json", side_effect=[forecast, metars]) as fetch:
+            weather = dashboard.supplemental_weather({"lat": 37.847, "lon": 14.925})
+        self.assertEqual(weather["current"]["temperature_2m"], 22)
+        self.assertEqual(weather["aviation"][0]["station"], "LICC")
+        self.assertIn("LICC,LICR,LICZ,LICB", fetch.call_args_list[1].args[1])
+
+    def test_opensky_airport_board_returns_observed_catania_movements(self):
+        observed = [{"icao24": "4ca8af", "callsign": "RYR43ET", "estDepartureAirport": "LIRF", "estArrivalAirport": "LICC", "firstSeen": 10, "lastSeen": 20}]
+        with patch.object(dashboard, "fetch_json", return_value=observed):
+            board = dashboard.airport_board("LICC")
+        self.assertEqual(board["airport"], "LICC")
+        self.assertEqual(board["arrivals"][0]["ident"], "RYR43ET")
+        self.assertFalse(board["live_status"])
 
     def test_current_rainviewer_hash_path_is_valid(self):
         self.assertTrue(dashboard.valid_weather_tile_path("v2/radar/25dbbe425e29/256/7/67/48/2/1_1.png"))
@@ -144,6 +180,8 @@ class DashboardTests(unittest.TestCase):
             dashboard.AIRCRAFT_FILES = (path,)
             os.environ["FR24FEED_FR24KEY"] = "super-secret"
             os.environ["SERVICE_ENABLE_FR24FEED"] = "true"
+            os.environ["AIRBAND_SOURCE_PASSWORD"] = "audio-source-secret"
+            os.environ["AIRNAV_VHF_PASSWORD"] = "airnav-secret"
             try:
                 payload = dashboard.status_payload()
                 encoded = json.dumps(payload)
@@ -154,10 +192,27 @@ class DashboardTests(unittest.TestCase):
                 self.assertIn("receiver_log", payload)
                 self.assertIn("device", payload["receiver"])
                 self.assertIn("gain", payload["receiver"])
+                self.assertIn("airband", payload)
+                self.assertNotIn("audio-source-secret", encoded)
+                self.assertNotIn("airnav-secret", encoded)
             finally:
                 dashboard.AIRCRAFT_FILES = old_files
                 os.environ.pop("FR24FEED_FR24KEY", None)
                 os.environ.pop("SERVICE_ENABLE_FR24FEED", None)
+                os.environ.pop("AIRBAND_SOURCE_PASSWORD", None)
+                os.environ.pop("AIRNAV_VHF_PASSWORD", None)
+
+    def test_airband_status_warns_when_both_roles_use_one_radio(self):
+        os.environ.update({"AIRBAND_ENABLED": "true", "RECEIVER_DEVICE_INDEX": "1", "VHF_DEVICE": "1"})
+        try:
+            status = dashboard.airband_status()
+            self.assertTrue(status["enabled"])
+            self.assertTrue(status["device_conflict"])
+            self.assertEqual(status["channels"], [])
+        finally:
+            os.environ.pop("AIRBAND_ENABLED", None)
+            os.environ.pop("RECEIVER_DEVICE_INDEX", None)
+            os.environ.pop("VHF_DEVICE", None)
 
     def test_tv_feed_contains_aircraft_but_no_portal_configuration(self):
         old_files = dashboard.AIRCRAFT_FILES

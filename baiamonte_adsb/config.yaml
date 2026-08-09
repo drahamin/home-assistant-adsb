@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 1.5.1
+version: 2.0.0
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -32,6 +32,7 @@ ports:
   8080/tcp: null
   8754/tcp: null
   30053/tcp: null
+  8000/tcp: null
 ports_description:
   8099/tcp: "TV display host port 8998 (internal ingress port remains 8099)"
   30001/tcp: "TCP raw input"
@@ -42,6 +43,7 @@ ports_description:
   8080/tcp: "Optional direct access to the receiver map"
   8754/tcp: "Optional direct access to FlightRadar24 feeder status"
   30053/tcp: "Optional direct access to Plane Finder feeder status"
+  8000/tcp: "Optional direct VHF airband audio stream (dashboard playback uses ingress)"
 options:
   SERVICE_ENABLE_DUMP1090: true
   SERVICE_ENABLE_PIAWARE: true
@@ -51,6 +53,21 @@ options:
   RECEIVER_GAIN: "auto"
   RECEIVER_PPM: 0
   RECEIVER_BIAS_TEE: false
+  AIRBAND_ENABLED: false
+  VHF_DEVICE: 1
+  VHF_PPM: 0
+  AIRBAND_GAIN: 28
+  AIRBAND_SQUELCH: -28
+  AIRBAND_FREQUENCIES: "118.700,119.250,129.725,127.675"
+  AIRBAND_LABELS: "Catania Tower,Catania Approach,Catania Ground,Catania ATIS"
+  AIRBAND_MOUNT: "baiamonte-airband.mp3"
+  AIRBAND_SOURCE_PASSWORD: ""
+  AIRNAV_VHF_ENABLED: false
+  AIRNAV_VHF_SERVER: ""
+  AIRNAV_VHF_PORT: 8000
+  AIRNAV_VHF_USERNAME: "source"
+  AIRNAV_VHF_PASSWORD: ""
+  AIRNAV_VHF_MOUNT: ""
   GPS_USE_USB: true
   GPS_DEVICE: "auto"
   GPS_BAUD: 9600
@@ -58,7 +75,12 @@ options:
   WEATHER_OVERLAY_DASHBOARD: true
   WEATHER_OVERLAY_TV: false
   WEATHER_OVERLAY_OPACITY: 55
+  OPEN_METEO: true
+  AVIATION_WEATHER: true
   MAP_STYLE: "standard"
+  HOME_AIRPORT: "LICC"
+  FLIGHTAWARE_ENRICHMENT: false
+  FLIGHTAWARE_AEROAPI_KEY: ""
   PIAWARE_FEEDER_DASH_ID: ""
   FR24FEED_FR24KEY: ""
   ADSBEXCHANGE_UUID: ""
@@ -79,6 +101,21 @@ schema:
   RECEIVER_GAIN: str
   RECEIVER_PPM: int
   RECEIVER_BIAS_TEE: bool
+  AIRBAND_ENABLED: bool
+  VHF_DEVICE: int
+  VHF_PPM: int
+  AIRBAND_GAIN: float
+  AIRBAND_SQUELCH: int
+  AIRBAND_FREQUENCIES: str
+  AIRBAND_LABELS: str
+  AIRBAND_MOUNT: str
+  AIRBAND_SOURCE_PASSWORD: password?
+  AIRNAV_VHF_ENABLED: bool
+  AIRNAV_VHF_SERVER: str?
+  AIRNAV_VHF_PORT: port
+  AIRNAV_VHF_USERNAME: str?
+  AIRNAV_VHF_PASSWORD: password?
+  AIRNAV_VHF_MOUNT: str?
   GPS_USE_USB: bool
   GPS_DEVICE: str
   GPS_BAUD: int
@@ -86,7 +123,12 @@ schema:
   WEATHER_OVERLAY_DASHBOARD: bool
   WEATHER_OVERLAY_TV: bool
   WEATHER_OVERLAY_OPACITY: int
+  OPEN_METEO: bool
+  AVIATION_WEATHER: bool
   MAP_STYLE: list(standard|humanitarian|topographic|dark|satellite)
+  HOME_AIRPORT: str
+  FLIGHTAWARE_ENRICHMENT: bool
+  FLIGHTAWARE_AEROAPI_KEY: password?
   SERVICE_ENABLE_IMPORT_OVER_NETCAT: bool?
   SERVICE_ENABLE_ADSBEXCHANGE: bool?
   SERVICE_ENABLE_PLANEFINDER: bool?

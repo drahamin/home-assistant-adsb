@@ -6,7 +6,7 @@ Baiamonte ADS-B reads 1090 MHz aircraft broadcasts from a compatible USB RTL-SDR
 
 ## Hardware
 
-1. Connect a compatible RTL-SDR USB receiver to the Home Assistant host.
+1. Connect a compatible RTL-SDR USB receiver to the Home Assistant host. Connect a second receiver if you want VHF aviation audio.
 2. Attach a 1090 MHz antenna. For reliable results, use a short, good-quality USB extension and place the antenna safely with a clear view of the sky.
 3. Install and start the app. Home Assistant grants the container USB access through the app manifest.
 
@@ -17,6 +17,14 @@ The default configuration enables dump1090, FlightAware, FlightRadar24, and the 
 The receiver location defaults to the Home Assistant home latitude, longitude, and elevation. These values are resolved at startup and are not sent anywhere except to feeder services you explicitly enable.
 
 The receiver settings expose the RTL-SDR device index or serial, gain, oscillator correction in PPM, and optional bias tee. Leave gain on `auto`, PPM on `0`, and bias tee off unless the antenna hardware requires different values.
+
+## VHF airband audio
+
+Enable **VHF airband receiver** to use a second RTL-SDR for receive-only civil aviation audio. The default ADS-B device is `0` and the default VHF device is `1`. Keep these different: a single tuner cannot decode 1090 MHz ADS-B and scan 118–137 MHz voice channels simultaneously. The dashboard reports a device conflict when both roles match.
+
+The default scan list contains published Catania Tower, Approach, Ground, and ATIS frequencies. Aviation frequencies change; confirm the current Italian AIP before operational use. Gain, squelch, PPM correction, frequencies, and channel labels are configurable. Audio is played through Home Assistant ingress, so port `8000` does not need to be exposed.
+
+Optional AirNav VHF forwarding uses the Icecast server, port, username, password, and mount supplied by AirNav. Sharing is disabled by default. Local and AirNav passwords never appear in dashboard responses.
 
 ## USB GPS location
 
@@ -47,6 +55,7 @@ Obtain credentials directly from each portal. The dashboard deliberately shows o
 - Optional port `8080`: original receiver map supplied by the feeder image.
 - Optional port `8754`: FlightRadar24 feeder status.
 - Optional port `30053`: Plane Finder feeder status.
+- Optional port `8000`: direct local VHF Icecast audio; leave unpublished when using the ingress player.
 
 Internal port `8099` is published as host port `8998` by default for the estate TV display. To use another port, open the app's **Network** section, change the host-side value beside **TV display host port**, save, and restart the app. The container and Home Assistant ingress continue to use internal port `8099`; this is expected.
 
@@ -66,7 +75,9 @@ The Overview and TV maps can be dragged to move around Sicily and zoomed with a 
 
 Map and RainViewer requests are proxied through the app so restricted TV browsers do not need direct cross-origin tile access. The TV layout includes a flexbox fallback for Samsung/Tizen models whose browser predates CSS Grid. If the weather service is temporarily unavailable, aircraft and the base map continue working normally. Weather radar is informational and must not be used for aviation safety decisions.
 
-The three shared navigation pages are **Overview**, **Live traffic**, and **Watch area**. Watch Area includes the receiver log, radio profile, GPS source, and feeder portal status.
+The dashboard also includes **VHF airband**, **Weather**, and **Airport board** pages. Weather uses Open-Meteo for GPS-positioned conditions and AviationWeather.gov for nearby Sicily METAR reports. Airport Board defaults to Catania Fontanarossa (`LICC`) and uses free observed OpenSky movements; an optional FlightAware AeroAPI key adds schedules, gates, and enhanced live status. Live traffic can request no-key ADSBDB aircraft and route details on demand.
+
+The core shared navigation pages remain **Overview**, **Live traffic**, and **Watch area**. Watch Area includes the receiver log, radio profile, GPS source, and feeder portal status.
 
 ## Data ports
 
@@ -91,3 +102,4 @@ The bundled `adsb-hassio-sensors` service publishes feeder health and counters t
 - **Portal says Needs key:** add the matching portal credential and restart the app.
 - **TV port does not appear to change:** only edit the host-side value under **Network**. Internal port `8099` is fixed for Home Assistant ingress. Save the network setting, then restart the app.
 - **Port conflict:** leave optional external ports disabled unless you explicitly need them. The sidebar dashboard works through ingress on its own internal port.
+- **VHF stream stays on Starting:** confirm a second RTL-SDR is attached, set **VHF radio device** to its index, and make sure it differs from **ADS-B Radio Device**.
