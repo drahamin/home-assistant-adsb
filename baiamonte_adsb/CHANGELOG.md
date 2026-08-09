@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.0
+
+- Adds automatic browser light/dark mode to the Home Assistant ADS-B dashboard.
+- Aligns cards, forms, status badges, muted text, and map chrome with AIS and Vineyard Operations.
+- Keeps the fullscreen TV display dark for distance viewing while retaining the brighter basemap.
+
 ## 2.0.0
 
 - Adds a second-RTL-SDR, receive-only VHF airband receiver using RTLSDR-Airband and a private local Icecast stream.

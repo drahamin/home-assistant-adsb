@@ -15,6 +15,15 @@ SPEC.loader.exec_module(dashboard)
 
 
 class DashboardTests(unittest.TestCase):
+    def test_dashboard_follows_browser_color_scheme(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        html = (web / "index.html").read_text()
+        theme = (web / "theme.css").read_text()
+        self.assertIn('href="theme.css?v=210"', html)
+        self.assertIn('media="(prefers-color-scheme: dark)"', html)
+        self.assertIn("@media(prefers-color-scheme:dark)", theme)
+        self.assertIn("color-scheme:light dark", theme)
+
     def test_tv_layout_uses_fullscreen_map_and_nearest_aircraft_rail(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
         html = (web / "display.html").read_text()

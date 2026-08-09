@@ -1,0 +1,23 @@
+:root{color-scheme:light dark}
+@media(prefers-color-scheme:dark){
+  :root{--ink:#f1ede5;--muted:#aaa094;--line:#3b362d;--paper:#0f0e0d;--white:#1b1917;--shadow:0 18px 50px rgba(0,0,0,.38)}
+  html,body{background:#0b0b0b;color:var(--ink)}
+  header,.section-head span{color:#aaa094}
+  .panel,.metric-card,.aircraft-card,.portal-card,.summary-strip,.config-panel,.airband-player{background:#1b1917;border-color:#3b362d;box-shadow:0 8px 25px rgba(0,0,0,.32)}
+  .summary-strip div,.recent-row,.portal-row,.aircraft-metrics,.movement-row{border-color:#3b362d}
+  .config-panel input,.config-panel select,.admin-code input{background:#11100f;border-color:#51483d;color:#f2ece4}
+  .diagnostic-grid div,.device-list div,.feeder-service,.frequency-list span,.forecast-list div,.aviation-weather article,.weather-current>div,.weather-forecast>div,.metar-card{background:#151310;border-color:#3b362d}
+  .feeder-readiness div{background:#211713}.feeder-readiness div.ready{background:#192016}.feeder-service[open] summary{border-color:#3b362d}
+  .hardware-monitor,.scanner-console{background:linear-gradient(145deg,#211b16,#17130f);border-color:#42362b}
+  .scanner-console select{background-color:#171411;border-color:#493d32;color:#eee8df}
+  .secondary-button,.listening-controls button,.back-button{background:#2c251e;border-color:#51483d;color:#eee8df}
+  .badge.neutral,.status.off{background:#2a2520;color:#beb4a8}
+  #refresh{background:#211d19;border-color:#41372e;color:#f4ede4}
+  .config-actions{background:rgba(33,28,24,.96);border-color:#493d32}
+  .weather-readout>div:not(.weather-hero),.site-comparison>div,.radio-profile div,.coordinate-grid div,.entity-route span,.destination{background:#151310;border-color:#3b362d;color:#eee8df}
+  .map-footer,.config-panel label,.diagnostic-grid small,.radio-profile small,.receiver-log-row time,.aircraft-card .hex,.identity-flag small{color:#aaa094}
+  .receiver-log-row{border-color:#3b362d}.receiver-log-row span{color:#d7cec4}
+  .portal-card p,.privacy>div:last-child>span,.recent-row small,.portal-row small,.aircraft-detail,.airport-notice,.movement-row span{color:#bdb3a8}
+  .frequency-list span{color:#e9e1d7}.aircraft-detail{background:#151310}.identity-flag{background:#151310;border-color:#3b362d}.identity-flag.carrier{background:#211c17}
+  .weather-alert,.airport-source{background:#211d18;color:#eee8df}.route-icon,.aircraft-icon{background:#2b241d;color:#d6b55b}.live-pill{background:#26301f;color:#a8c38c}
+}
