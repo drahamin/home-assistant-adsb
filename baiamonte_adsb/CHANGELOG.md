@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.3
+
+- Removes the misleading ADSBHub **Needs key** portal state; the dynamic-IP key is now clearly optional and never required for aircraft feeding.
+- Retains inbound ADSBHub targets for five minutes by default and accepts shortened SBS records with omitted trailing fields.
+- Enriches local signal-only contacts with ADSBHub positions instead of discarding the positioned duplicate.
+- Raises the default display ceiling from 250 to 1,000 aircraft, makes it configurable, and reports received, displayed, positioned, enriched, and truncated target counts.
+
 ## 2.3.2
 
 - Adds Baiamonte favicon sizes, an Apple touch icon, and 192/512 px installable web-app icons.
