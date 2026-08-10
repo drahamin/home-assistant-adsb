@@ -60,7 +60,22 @@
         </div>
         <article class="panel channel-panel"><div class="panel-head"><div><p>SCAN LIST</p><h3>Catania and eastern Sicily aviation channels</h3></div><span class="live-pill"><i></i>RECEIVE ONLY</span></div><div id="vhf-channels" class="vhf-channels"></div></article>
       </section>
-      <section class="page" id="area"><div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>RECEIVER AND SHARING</p><h2>Watch area</h2><span>Receiver health, radio configuration, GPS position, and feeder readiness.</span></div><span class="badge neutral">Configuration</span></div><div class="area-grid"><article class="panel"><p>RECEIVER LOG</p><h3>Hardware activity</h3><div id="receiver-log" class="receiver-log"></div></article><article class="panel"><p>RADIO PROFILE</p><h3>1090 MHz receiver</h3><div id="radio-profile" class="radio-profile"></div></article></div><div id="portal-grid" class="portal-grid"></div><article class="panel privacy"><span class="route-icon"><svg><use href="#i-network"/></svg></span><div><p>BAIAMONTE DATA POLICY</p><h3>Your keys stay inside Home Assistant</h3><span>This dashboard reports only whether a portal is enabled and configured. It never exposes sharing keys, feeder IDs, UUIDs, or sharecodes.</span></div></article></section>
+      <section class="page" id="area">
+        <div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>RECEIVER AND SHARING</p><h2>Watch area</h2><span>Receiver health, radio configuration, GPS position, and feeder readiness.</span></div><span class="badge neutral">Configuration</span></div>
+        <div class="area-grid"><article class="panel"><p>RECEIVER LOG</p><h3>Hardware activity</h3><div id="receiver-log" class="receiver-log"></div></article><article class="panel"><p>RADIO PROFILE</p><h3>1090 MHz receiver</h3><div id="radio-profile" class="radio-profile"></div></article></div>
+        <article class="panel adsbhub-panel">
+          <div class="panel-head"><div><p>ADSBHUB · IN AND OUT</p><h3>Public station connection</h3></div><span class="badge neutral" id="adsbhub-badge">Disabled</span></div>
+          <div class="public-address"><small>PUBLIC ADDRESS FOR ADSBHUB STATION HOST (IP)</small><div><b id="adsbhub-public-ip">Detecting…</b><button class="text-button" id="copy-adsbhub-ip" type="button">Copy</button></div><span id="adsbhub-public-note">The address is detected without revealing your private update key.</span></div>
+          <div class="adsbhub-routes">
+            <div><small>OUTBOUND RAW</small><b id="adsbhub-outbound">Disabled</b><span id="adsbhub-outbound-detail">Local receiver → ADSBHub :5001</span></div>
+            <div><small>INBOUND SBS</small><b id="adsbhub-inbound">Disabled</b><span id="adsbhub-inbound-detail">ADSBHub :5002 → separate local feed</span></div>
+            <div><small>DYNAMIC IP</small><b id="adsbhub-update">Waiting</b><span id="adsbhub-update-detail">Private key remains in Home Assistant</span></div>
+          </div>
+          <p class="adsbhub-help" id="adsbhub-help">In ADSBHub, select Client mode and Raw protocol, then enter the public address shown above as Station Host (IP).</p>
+        </article>
+        <div id="portal-grid" class="portal-grid"></div>
+        <article class="panel privacy"><span class="route-icon"><svg><use href="#i-network"/></svg></span><div><p>BAIAMONTE DATA POLICY</p><h3>Your keys stay inside Home Assistant</h3><span>This dashboard reports only whether a portal is enabled and configured. It never exposes sharing keys, feeder IDs, UUIDs, or sharecodes.</span></div></article>
+      </section>
       <section class="page" id="weather"><div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>SICILY WEATHER</p><h2>Estate and aviation weather</h2><span>GPS-positioned conditions, five-day outlook, live rain radar, and nearby METAR reports.</span></div><span class="badge neutral" id="weather-source">Loading</span></div><div id="weather-current" class="weather-current"></div><article class="panel operations-panel"><div class="panel-head"><div><p>FIVE-DAY OUTLOOK</p><h3>Tenuta Baiamonte</h3></div></div><div id="weather-forecast" class="weather-forecast"></div></article><article class="panel operations-panel"><div class="panel-head"><div><p>AVIATION WEATHER</p><h3>Eastern Sicily METAR</h3></div></div><div id="metar-grid" class="metar-grid"></div></article></section>
       <section class="page" id="airport"><div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>CATANIA MOVEMENTS</p><h2><span id="airport-code">LICC</span> airport board</h2><span id="airport-source">OpenSky observed movements</span></div><button class="badge board-refresh" id="airport-refresh">Refresh board</button></div><div class="airport-columns"><article class="panel"><div class="panel-head"><div><p>ARRIVALS</p><h3>Recent and expected inbound</h3></div></div><div id="arrival-board" class="movement-board"><div class="empty">Open the board to load movements.</div></div></article><article class="panel"><div class="panel-head"><div><p>DEPARTURES</p><h3>Recent and expected outbound</h3></div></div><div id="departure-board" class="movement-board"><div class="empty">Open the board to load movements.</div></div></article></div><p class="airport-notice" id="airport-notice">Free mode shows observed OpenSky movements. Optional FlightAware AeroAPI adds schedules, gates, and live status.</p></section>
     </main>
@@ -68,6 +83,6 @@
   <script src="map.js?v=150"></script>
   <script src="airport.js?v=200"></script>
   <script src="app.js?v=200"></script>
-  <script src="operations.js?v=200"></script>
+  <script src="operations.js?v=220"></script>
 </body>
 </html>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.0
+
+- Adds a reliable ADSBHub Client-mode raw upload to `data.adsbhub.org:5001`.
+- Adds optional aggregated ADSBHub SBS input from port `5002` with a separate local relay that cannot be fed back into the estate decoder or other portals.
+- Adds official ADSBHub dynamic-IP updates and automatic public IPv4/IPv6 detection.
+- Adds protected Home Assistant configuration for the station key, public address, upload, download, and local inbound port.
+- Adds a Baiamonte Watch Area panel with the copyable public address and independent outbound, inbound, and dynamic-IP status.
+
 ## 2.1.1
 
 - Brightens the fullscreen `/tv` basemap without changing the Home Assistant dashboard theme or weather opacity.

@@ -31,6 +31,7 @@ AIRCRAFT_FILES = (
     Path("/run/readsb/aircraft.json"),
 )
 GPS_LOCATION_FILE = Path(os.getenv("BAIAMONTE_GPS_JSON", "/run/baiamonte/gps.json"))
+ADSBHUB_STATUS_FILE = Path(os.getenv("ADSBHUB_STATUS_FILE", "/run/baiamonte/adsbhub.json"))
 RECEIVER_LOG = deque(maxlen=80)
 receiver_signature = None
 PORTALS = (
@@ -207,6 +208,40 @@ def airband_status() -> dict:
         "listeners": listeners,
         "airnav_enabled": enabled("AIRNAV_VHF_ENABLED", False),
         "airnav_configured": all(os.getenv(name, "").strip() for name in ("AIRNAV_VHF_SERVER", "AIRNAV_VHF_PASSWORD", "AIRNAV_VHF_MOUNT")),
+    }
+
+
+def adsbhub_status() -> dict:
+    """Return connection and public-address details without exposing the station key."""
+    status: dict[str, object] = {}
+    try:
+        loaded = json.loads(ADSBHUB_STATUS_FILE.read_text(encoding="utf-8"))
+        if isinstance(loaded, dict):
+            status = loaded
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
+    public_host = os.getenv("ADSBHUB_PUBLIC_HOST", "auto").strip() or "auto"
+    return {
+        "enabled": enabled("SERVICE_ENABLE_ADSBHUB", False),
+        "configured": bool(os.getenv("ADSBHUB_CKEY", "").strip()),
+        "public_host_setting": public_host,
+        "public_ipv4": str(status.get("public_ipv4", "")),
+        "public_ipv6": str(status.get("public_ipv6", "")),
+        "outbound_connected": bool(status.get("outbound_connected", False)),
+        "outbound_host": os.getenv("ADSBHUB_OUTBOUND_HOST", "data.adsbhub.org"),
+        "outbound_port": int(os.getenv("ADSBHUB_OUTBOUND_PORT", "5001")),
+        "outbound_bytes": int(status.get("outbound_bytes", 0)),
+        "inbound_enabled": enabled("ADSBHUB_INBOUND_ENABLED", False),
+        "inbound_connected": bool(status.get("inbound_connected", False)),
+        "inbound_host": os.getenv("ADSBHUB_INBOUND_HOST", "data.adsbhub.org"),
+        "inbound_port": int(os.getenv("ADSBHUB_INBOUND_PORT", "5002")),
+        "local_inbound_port": int(os.getenv("ADSBHUB_LOCAL_INBOUND_PORT", "5002")),
+        "inbound_clients": int(status.get("inbound_clients", 0)),
+        "inbound_bytes": int(status.get("inbound_bytes", 0)),
+        "dynamic_update_enabled": enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True),
+        "dynamic_update_ok": bool(status.get("dynamic_update_ok", False)),
+        "last_update": float(status.get("last_update", 0) or 0),
+        "last_error": str(status.get("last_error", "")),
     }
 
 
@@ -559,6 +594,7 @@ def status_payload() -> dict:
         "weather": weather,
         "map_style": map_style(),
         "airband": airband_status(),
+        "adsbhub": adsbhub_status(),
         "flight_data": {
             "free_source": "ADSBDB + OpenSky",
             "flightaware_enabled": enabled("FLIGHTAWARE_ENRICHMENT", False),

@@ -107,6 +107,42 @@ configuration:
   FLIGHTAWARE_AEROAPI_KEY:
     name: FlightAware AeroAPI key
     description: Optional private API key for live schedules, gates, delay status, and enhanced flight details.
+  SERVICE_ENABLE_ADSBHUB:
+    name: Send aircraft to ADSBHub
+    description: Send the receiver's raw ADS-B stream to ADSBHub as a Client station.
+  ADSBHUB_CKEY:
+    name: ADSBHub dynamic IP key
+    description: Private station key from ADSBHub Settings. It is masked, used only for IP updates, and never shown in the dashboard.
+  ADSBHUB_PUBLIC_HOST:
+    name: ADSBHub public address
+    description: Use auto to detect and display this site's current public address, or enter a fixed public IP or hostname.
+  ADSBHUB_DYNAMIC_IP_UPDATE:
+    name: Update ADSBHub public IP
+    description: Keep the ADSBHub Station Host address current using the private dynamic IP key.
+  ADSBHUB_SOURCE_HOST:
+    name: ADSBHub local source host
+    description: Local decoder supplying raw ADS-B data. Keep 127.0.0.1 for the built-in receiver.
+  ADSBHUB_SOURCE_PORT:
+    name: ADSBHub local raw port
+    description: Raw output from the local decoder. Keep 30002 for the built-in receiver.
+  ADSBHUB_OUTBOUND_HOST:
+    name: ADSBHub upload server
+    description: ADSBHub destination for outbound receiver data.
+  ADSBHUB_OUTBOUND_PORT:
+    name: ADSBHub upload port
+    description: Client-mode raw upload port. ADSBHub currently uses 5001.
+  ADSBHUB_INBOUND_ENABLED:
+    name: Receive ADSBHub shared traffic
+    description: Receive the aggregated SBS stream separately and make it available on the local inbound port without mixing it into the estate receiver.
+  ADSBHUB_INBOUND_HOST:
+    name: ADSBHub download server
+    description: ADSBHub source for the aggregated inbound stream.
+  ADSBHUB_INBOUND_PORT:
+    name: ADSBHub download port
+    description: ADSBHub aggregated SBS stream port. ADSBHub currently uses 5002.
+  ADSBHUB_LOCAL_INBOUND_PORT:
+    name: Local ADSBHub inbound port
+    description: Local TCP port where other devices can read the separate aggregated SBS feed.
   PIAWARE_FEEDER_DASH_ID:
     name: FlightAware feeder ID
     description: Unique feeder ID from your FlightAware account.
@@ -139,3 +175,4 @@ network:
   8754/tcp: FlightRadar24 status
   30053/tcp: Plane Finder status
   8000/tcp: Optional direct VHF audio stream
+  5002/tcp: Optional local ADSBHub aggregated SBS feed
