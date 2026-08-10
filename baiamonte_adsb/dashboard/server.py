@@ -230,6 +230,9 @@ def adsbhub_status() -> dict:
     if public_mode not in {"auto", "manual"}:
         public_mode = "auto" if public_host.lower() == "auto" else "manual"
     detected_public_ipv4 = str(status.get("detected_public_ipv4", status.get("public_ipv4", "")))
+    inbound_targets = status.get("inbound_targets", [])
+    if not isinstance(inbound_targets, list):
+        inbound_targets = []
     return {
         "enabled": enabled("SERVICE_ENABLE_ADSBHUB", False),
         "configured": bool(os.getenv("ADSBHUB_CKEY", "").strip()),
@@ -260,6 +263,8 @@ def adsbhub_status() -> dict:
         "inbound_last_data_at": float(status.get("inbound_last_data_at", 0) or 0),
         "inbound_reconnects": int(status.get("inbound_reconnects", 0)),
         "inbound_error": str(status.get("inbound_error", "")),
+        "inbound_target_count": len(inbound_targets),
+        "inbound_targets": inbound_targets if enabled("ADSBHUB_DISPLAY_TARGETS", True) else [],
         "dynamic_update_enabled": enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True),
         "dynamic_update_ok": bool(status.get("dynamic_update_ok", False)),
         "last_update": float(status.get("last_update", 0) or 0),
@@ -560,6 +565,7 @@ def clean_aircraft(record: dict, reference_lat: float | None = None, reference_l
         "carrier_country_code": carrier_country_code,
         "squawk": str(record.get("squawk", "")).strip(),
         "country_code": country_code,
+        "source": str(record.get("source", "Local receiver")).strip() or "Local receiver",
     }
     latitude, longitude = cleaned["lat"], cleaned["lon"]
     if all(isinstance(value, (int, float)) for value in (latitude, longitude, reference_lat, reference_lon)):
@@ -576,6 +582,14 @@ def status_payload() -> dict:
     site_lat = location["lat"]
     site_lon = location["lon"]
     records = [clean_aircraft(item, site_lat, site_lon) for item in raw.get("aircraft", []) if isinstance(item, dict)]
+    local_addresses = {item["hex"].lower() for item in records if item["hex"]}
+    hub = adsbhub_status()
+    hub_records = [
+        clean_aircraft(item, site_lat, site_lon)
+        for item in hub.get("inbound_targets", [])
+        if isinstance(item, dict) and str(item.get("hex", "")).lower() not in local_addresses
+    ]
+    records.extend(hub_records)
     records.sort(key=lambda item: (
         item["distance_km"] is None,
         item["distance_km"] if item["distance_km"] is not None else math.inf,
@@ -586,10 +600,14 @@ def status_payload() -> dict:
     portals = []
     for label, flag, credential in PORTALS:
         is_enabled = enabled(flag, default=flag in {"SERVICE_ENABLE_PIAWARE", "SERVICE_ENABLE_FR24FEED"})
+        is_configured = bool(os.getenv(credential, "").strip()) if is_enabled else False
+        if label == "ADSBHub" and is_enabled:
+            manual_address = os.getenv("ADSBHUB_PUBLIC_IP_MODE", "auto").strip().lower() == "manual"
+            is_configured = manual_address or not enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True) or is_configured
         portals.append({
             "name": label,
             "enabled": is_enabled,
-            "configured": bool(os.getenv(credential, "").strip()) if is_enabled else False,
+            "configured": is_configured,
         })
     receiver = enabled("SERVICE_ENABLE_DUMP1090", True)
     decoder_ready = tcp_ready(30005) or source is not None
@@ -626,14 +644,14 @@ def status_payload() -> dict:
         "receiver": receiver_info,
         "receiver_log": list(RECEIVER_LOG),
         "location": location,
-        "counts": {"aircraft": len(records), "positioned": positioned},
+        "counts": {"aircraft": len(records), "positioned": positioned, "local": len(records) - len(hub_records), "adsbhub": len(hub_records)},
         "aircraft": records[:250],
         "portals": portals,
         "weather": weather,
         "map_style": map_style(),
         "dashboard_theme": dashboard_theme(),
         "airband": airband_status(),
-        "adsbhub": adsbhub_status(),
+        "adsbhub": {key: value for key, value in hub.items() if key != "inbound_targets"},
         "flight_data": {
             "free_source": "ADSBDB + OpenSky",
             "flightaware_enabled": enabled("FLIGHTAWARE_ENRICHMENT", False),
@@ -775,7 +793,7 @@ class Handler(BaseHTTPRequestHandler):
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
         if relative in {"display", "tv"}:
             relative = "display.html"
-        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "detail-theme.css", "airband-theme.css", "operations-theme.css", "enrichment-theme.css", "theme.css", "forced-dark.css", "theme-control.js", "adsbhub-health.js", "airport.js", "operations.js", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
+        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "detail-theme.css", "airband-theme.css", "operations-theme.css", "enrichment-theme.css", "adsbhub-targets.css", "theme.css", "forced-dark.css", "theme-control.js", "adsbhub-health.js", "airport.js", "operations.js", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
             relative = "index.html"
         target = WEB_ROOT / relative
         try:

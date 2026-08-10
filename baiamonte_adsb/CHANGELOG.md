@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.1
+
+- Parses the inbound ADSBHub SBS stream into a display-only aircraft cache.
+- Shows ADSBHub targets on the dashboard and TV maps with clear source labels and blue-outlined aircraft icons.
+- Keeps imported targets isolated from dump1090 and every outbound feeder to prevent sharing loops.
+- Corrects the portal summary so a manually configured ADSBHub public address does not incorrectly report **Needs key**.
+
 ## 2.3.0
 
 - Adds an explicit **Dashboard appearance** setting with Automatic, Light, and Dark choices.

@@ -111,6 +111,39 @@ class ADSBHubTests(unittest.TestCase):
             adsbhub.STOP.clear()
             os.environ.pop("ADSBHUB_INBOUND_ENABLED", None)
 
+    def test_inbound_sbs_messages_become_display_only_targets(self):
+        adsbhub.INBOUND_TARGETS.clear()
+        first = b"MSG,3,1,1,4CA123,1,2026/08/10,16:00:00.000,2026/08/10,16:00:00.000,RYR43ET,18500,310.5,92.0,37.9123,15.2045,0,4721,0,0,0,0\r\n"
+        second = b"MSG,4,1,1,4CA123,1,2026/08/10,16:00:01.000,2026/08/10,16:00:01.000,,18600,312.0,93.0,,,,,0,0,0,0\r\n"
+        remainder = adsbhub.ingest_sbs_chunk(b"", first[:50])
+        self.assertNotIn("4ca123", adsbhub.INBOUND_TARGETS)
+        remainder = adsbhub.ingest_sbs_chunk(remainder, first[50:] + second)
+        self.assertEqual(remainder, b"")
+        target = adsbhub.INBOUND_TARGETS["4ca123"]
+        self.assertEqual(target["flight"], "RYR43ET")
+        self.assertEqual(target["altitude"], 18600)
+        self.assertEqual(target["lat"], 37.9123)
+        self.assertEqual(target["messages"], 2)
+        adsbhub.INBOUND_TARGETS.clear()
+
+    def test_status_exposes_targets_without_any_station_key(self):
+        old_file = adsbhub.STATUS_FILE
+        with tempfile.TemporaryDirectory() as tmp:
+            adsbhub.STATUS_FILE = Path(tmp) / "adsbhub.json"
+            adsbhub.INBOUND_TARGETS.clear()
+            adsbhub.ingest_sbs_line("MSG,3,1,1,ABC123,1,d,t,d,t,BAI1,9000,210,180,37.8,14.9,0,7000,0,0,0,0")
+            os.environ["ADSBHUB_CKEY"] = "do-not-publish-this"
+            try:
+                adsbhub.write_status()
+                payload = json.loads(adsbhub.STATUS_FILE.read_text())
+                self.assertEqual(payload["inbound_target_count"], 1)
+                self.assertEqual(payload["inbound_targets"][0]["source"], "ADSBHub")
+                self.assertNotIn("do-not-publish-this", json.dumps(payload))
+            finally:
+                adsbhub.STATUS_FILE = old_file
+                adsbhub.INBOUND_TARGETS.clear()
+                os.environ.pop("ADSBHUB_CKEY", None)
+
     def test_status_file_never_contains_private_key(self):
         old_file = adsbhub.STATUS_FILE
         with tempfile.TemporaryDirectory() as tmp:

@@ -19,6 +19,7 @@ STATUS_FILE = Path(os.getenv("ADSBHUB_STATUS_FILE", "/run/baiamonte/adsbhub.json
 STOP = threading.Event()
 LOCK = threading.Lock()
 CLIENTS: set[socket.socket] = set()
+INBOUND_TARGETS: dict[str, dict[str, object]] = {}
 STATUS: dict[str, object] = {
     "outbound_connected": False,
     "inbound_connected": False,
@@ -68,7 +69,18 @@ def add_bytes(name: str, count: int) -> None:
 
 def write_status() -> None:
     STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    now = time.time()
+    target_ttl = max(30, integer("ADSBHUB_TARGET_TTL", 120))
     with LOCK:
+        expired = [address for address, target in INBOUND_TARGETS.items() if now - float(target.get("last_seen", 0)) > target_ttl]
+        for address in expired:
+            INBOUND_TARGETS.pop(address, None)
+        inbound_targets = []
+        for target in INBOUND_TARGETS.values():
+            item = {key: value for key, value in target.items() if key != "last_seen"}
+            item["seen"] = round(max(0, now - float(target.get("last_seen", now))), 1)
+            item["source"] = "ADSBHub"
+            inbound_targets.append(item)
         payload = {
             **STATUS,
             "generated_at": time.time(),
@@ -77,6 +89,8 @@ def write_status() -> None:
             "dynamic_update_enabled": enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True),
             "key_configured": bool(os.getenv("ADSBHUB_CKEY", "").strip()),
             "local_inbound_port": integer("ADSBHUB_LOCAL_INBOUND_PORT", 5002),
+            "inbound_target_count": len(inbound_targets),
+            "inbound_targets": inbound_targets,
         }
     temporary = STATUS_FILE.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
@@ -222,11 +236,64 @@ def broadcast(chunk: bytes) -> None:
             STATUS["inbound_clients"] = len(CLIENTS)
 
 
+def number(value: str, integer_value: bool = False) -> int | float | None:
+    if not value.strip():
+        return None
+    try:
+        return int(float(value)) if integer_value else float(value)
+    except ValueError:
+        return None
+
+
+def ingest_sbs_line(line: str, observed_at: float | None = None) -> bool:
+    """Update the display-only target cache from one BaseStation/SBS message."""
+    fields = line.strip().split(",")
+    if len(fields) < 22 or fields[0] != "MSG":
+        return False
+    address = fields[4].strip().lower()
+    if not address:
+        return False
+    observed_at = time.time() if observed_at is None else observed_at
+    updates: dict[str, object] = {}
+    for key, index, integer_value in (
+        ("altitude", 11, True),
+        ("speed", 12, False),
+        ("track", 13, False),
+        ("lat", 14, False),
+        ("lon", 15, False),
+    ):
+        value = number(fields[index], integer_value)
+        if value is not None:
+            updates[key] = value
+    callsign = fields[10].strip().upper()
+    squawk = fields[17].strip()
+    if callsign:
+        updates["flight"] = callsign
+    if squawk:
+        updates["squawk"] = squawk
+    with LOCK:
+        target = INBOUND_TARGETS.setdefault(address, {"hex": address, "messages": 0})
+        target.update(updates)
+        target["messages"] = int(target.get("messages", 0)) + 1
+        target["last_seen"] = observed_at
+    return True
+
+
+def ingest_sbs_chunk(buffer: bytes, chunk: bytes) -> bytes:
+    """Parse complete SBS lines and retain an incomplete final line for the next read."""
+    buffer += chunk
+    lines = buffer.split(b"\n")
+    for raw_line in lines[:-1]:
+        ingest_sbs_line(raw_line.rstrip(b"\r").decode("ascii", errors="ignore"))
+    return lines[-1][-65536:]
+
+
 def inbound_worker() -> None:
     local_port = integer("ADSBHUB_LOCAL_INBOUND_PORT", 5002)
     remote_host = os.getenv("ADSBHUB_INBOUND_HOST", "data.adsbhub.org").strip() or "data.adsbhub.org"
     remote_port = integer("ADSBHUB_INBOUND_PORT", 5002)
     listener: socket.socket | None = None
+    sbs_buffer = b""
     try:
         listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -247,6 +314,7 @@ def inbound_worker() -> None:
                             break
                         add_bytes("inbound_bytes", len(chunk))
                         set_status(inbound_last_data_at=time.time())
+                        sbs_buffer = ingest_sbs_chunk(sbs_buffer, chunk)
                         broadcast(chunk)
             except OSError as error:
                 set_status(inbound_error=str(error))
