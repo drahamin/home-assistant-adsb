@@ -25,6 +25,7 @@ STATUS: dict[str, object] = {
     "dynamic_update_ok": False,
     "public_ipv4": "",
     "public_ipv6": "",
+    "detected_public_ipv4": "",
     "outbound_bytes": 0,
     "inbound_bytes": 0,
     "inbound_clients": 0,
@@ -88,20 +89,29 @@ def fetch_text(url: str, timeout: float = 10) -> str:
         return response.read().decode("utf-8").strip()
 
 
-def public_addresses() -> tuple[str, str]:
+def public_ip_mode(configured: str | None = None) -> str:
+    configured = os.getenv("ADSBHUB_PUBLIC_HOST", "auto").strip() if configured is None else configured
+    mode = os.getenv("ADSBHUB_PUBLIC_IP_MODE", "").strip().lower()
+    if mode not in {"auto", "manual"}:
+        mode = "auto" if configured.lower() in {"", "auto"} else "manual"
+    return mode
+
+
+def public_addresses() -> tuple[str, str, str]:
     configured = os.getenv("ADSBHUB_PUBLIC_HOST", "auto").strip()
-    ipv4 = "" if configured.lower() in {"", "auto"} else configured
+    mode = public_ip_mode(configured)
+    detected_ipv4 = ""
     ipv6 = ""
-    if not ipv4:
-        try:
-            ipv4 = fetch_text("https://ip4.adsbhub.org/getmyip.php")
-        except OSError:
-            pass
+    try:
+        detected_ipv4 = fetch_text("https://ip4.adsbhub.org/getmyip.php")
+    except OSError:
+        pass
     try:
         ipv6 = fetch_text("https://ip6.adsbhub.org/getmyip.php")
     except OSError:
         pass
-    return ipv4, ipv6
+    effective_ipv4 = detected_ipv4 if mode == "auto" else configured
+    return effective_ipv4, ipv6, detected_ipv4
 
 
 def update_dynamic_ip(ckey: str, ipv4: str, ipv6: str) -> bool:
@@ -134,10 +144,11 @@ def configure_stream_socket(stream: socket.socket) -> None:
 def address_worker() -> None:
     while not STOP.is_set():
         try:
-            ipv4, ipv6 = public_addresses()
-            values: dict[str, object] = {"public_ipv4": ipv4, "public_ipv6": ipv6, "public_address_error": ""}
+            ipv4, ipv6, detected_ipv4 = public_addresses()
+            mode = public_ip_mode()
+            values: dict[str, object] = {"public_ipv4": ipv4, "public_ipv6": ipv6, "detected_public_ipv4": detected_ipv4, "public_address_error": ""}
             ckey = os.getenv("ADSBHUB_CKEY", "").strip()
-            if enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True) and ckey and (ipv4 or ipv6):
+            if enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True) and mode != "manual" and ckey and (ipv4 or ipv6):
                 values["dynamic_update_ok"] = update_dynamic_ip(ckey, ipv4, ipv6)
                 values["last_update"] = time.time()
             set_status(**values)

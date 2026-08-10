@@ -7,6 +7,7 @@
 - Requires ADSBHub's exact dynamic-IP challenge response before reporting the public-address update as successful.
 - Adds separate inbound/outbound errors, byte counters, connection times, data times, and reconnect counters to the safe status response.
 - Shows **Both connected** only when every enabled ADSBHub direction is actually online.
+- Adds explicit Automatic/Manual public-IP configuration and a **Check public IP now** tool with mismatch warnings.
 
 ## 2.2.0
 

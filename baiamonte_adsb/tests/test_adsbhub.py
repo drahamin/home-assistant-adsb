@@ -131,9 +131,19 @@ class ADSBHubTests(unittest.TestCase):
         os.environ["ADSBHUB_PUBLIC_HOST"] = "auto"
         try:
             with patch.object(adsbhub, "fetch_text", side_effect=["203.0.113.9", "2001:db8::9"]) as fetch:
-                self.assertEqual(adsbhub.public_addresses(), ("203.0.113.9", "2001:db8::9"))
+                self.assertEqual(adsbhub.public_addresses(), ("203.0.113.9", "2001:db8::9", "203.0.113.9"))
             self.assertIn("ip4.adsbhub.org", fetch.call_args_list[0].args[0])
         finally:
+            os.environ.pop("ADSBHUB_PUBLIC_HOST", None)
+
+    def test_manual_public_address_is_compared_with_detected_ip(self):
+        os.environ["ADSBHUB_PUBLIC_IP_MODE"] = "manual"
+        os.environ["ADSBHUB_PUBLIC_HOST"] = "198.51.100.44"
+        try:
+            with patch.object(adsbhub, "fetch_text", side_effect=["203.0.113.9", ""]):
+                self.assertEqual(adsbhub.public_addresses(), ("198.51.100.44", "", "203.0.113.9"))
+        finally:
+            os.environ.pop("ADSBHUB_PUBLIC_IP_MODE", None)
             os.environ.pop("ADSBHUB_PUBLIC_HOST", None)
 
 
