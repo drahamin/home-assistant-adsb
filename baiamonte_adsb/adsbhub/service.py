@@ -124,7 +124,10 @@ def public_addresses() -> tuple[str, str, str]:
     detected_ipv4 = ""
     ipv6 = ""
     try:
-        detected_ipv4 = fetch_text("https://ip4.adsbhub.org/getmyip.php")
+        # The legacy ip4 hostname currently presents a certificate for
+        # www.adsbhub.org. Keep TLS verification enabled by using ADSBHub's
+        # canonical public-address endpoint.
+        detected_ipv4 = fetch_text("https://www.adsbhub.org/getmyip.php")
     except OSError:
         pass
     try:
@@ -315,13 +318,17 @@ def inbound_worker() -> None:
             try:
                 with socket.create_connection((remote_host, remote_port), timeout=15) as remote:
                     configure_stream_socket(remote)
-                    set_status(inbound_connected=True, inbound_connected_at=time.time(), inbound_error="")
+                    set_status(inbound_connected=True, inbound_connected_at=time.time())
+                    session_bytes = 0
                     while not STOP.is_set():
                         chunk = remote.recv(65536)
                         if not chunk:
+                            if session_bytes == 0:
+                                set_status(inbound_error="ADSBHub closed port 5002 without sending data; aggregated-feed access is not active for this account/IP")
                             break
+                        session_bytes += len(chunk)
                         add_bytes("inbound_bytes", len(chunk))
-                        set_status(inbound_last_data_at=time.time())
+                        set_status(inbound_last_data_at=time.time(), inbound_error="")
                         sbs_buffer = ingest_sbs_chunk(sbs_buffer, chunk)
                         broadcast(chunk)
             except OSError as error:

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.4
+
+- Fix automatic public IPv4 detection after ADSBHub's legacy hostname began presenting an invalid TLS certificate.
+- Report when ADSBHub accepts port 5002 and closes it without sending data, distinguishing inactive aggregated-feed access from a map or parser problem.
+
 ## 2.3.3
 
 - Removes the misleading ADSBHub **Needs key** portal state; the dynamic-IP key is now clearly optional and never required for aircraft feeding.
