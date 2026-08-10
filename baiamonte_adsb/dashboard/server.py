@@ -280,7 +280,7 @@ def adsbhub_status() -> dict:
 
 def adsbhub_public_ip_check() -> dict:
     """Detect the current external IPv4 without returning or using any credential."""
-    request = Request("https://ip4.adsbhub.org/getmyip.php", headers={"User-Agent": "Tenuta-Baiamonte-ADSB/2.2"})
+    request = Request("https://www.adsbhub.org/getmyip.php", headers={"User-Agent": "Tenuta-Baiamonte-ADSB/2.3"})
     with urlopen(request, timeout=8) as response:
         detected = response.read().decode("utf-8").strip()
     status = adsbhub_status()

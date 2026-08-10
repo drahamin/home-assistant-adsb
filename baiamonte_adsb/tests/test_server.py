@@ -364,9 +364,10 @@ class DashboardTests(unittest.TestCase):
         os.environ["ADSBHUB_PUBLIC_HOST"] = "198.51.100.44"
         os.environ["ADSBHUB_CKEY"] = "never-return-this"
         try:
-            with patch.object(dashboard, "urlopen", return_value=Response()):
+            with patch.object(dashboard, "urlopen", return_value=Response()) as urlopen:
                 result = dashboard.adsbhub_public_ip_check()
             self.assertEqual(result["detected_public_ipv4"], "203.0.113.9")
+            self.assertEqual(urlopen.call_args.args[0].full_url, "https://www.adsbhub.org/getmyip.php")
             self.assertFalse(result["matches"])
             self.assertNotIn("never-return-this", json.dumps(result))
         finally:

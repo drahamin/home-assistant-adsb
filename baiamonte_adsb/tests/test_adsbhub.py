@@ -126,6 +126,31 @@ class ADSBHubTests(unittest.TestCase):
         self.assertEqual(target["messages"], 2)
         adsbhub.INBOUND_TARGETS.clear()
 
+    def test_zero_byte_inbound_close_reports_inactive_access(self):
+        class Listener(self.Stream):
+            def bind(self, _address):
+                pass
+
+            def listen(self, _count):
+                pass
+
+            def accept(self):
+                raise OSError("test listener complete")
+
+        os.environ["ADSBHUB_INBOUND_ENABLED"] = "true"
+        adsbhub.STOP.clear()
+        adsbhub.STATUS["inbound_error"] = ""
+        remote = self.Stream([])
+        try:
+            with patch.object(adsbhub.socket, "socket", return_value=Listener()), patch.object(
+                adsbhub.socket, "create_connection", return_value=remote
+            ):
+                adsbhub.inbound_worker()
+            self.assertIn("closed port 5002 without sending data", adsbhub.STATUS["inbound_error"])
+        finally:
+            adsbhub.STOP.clear()
+            os.environ.pop("ADSBHUB_INBOUND_ENABLED", None)
+
     def test_shortened_sbs_message_without_trailing_fields_is_accepted(self):
         adsbhub.INBOUND_TARGETS.clear()
         self.assertTrue(adsbhub.ingest_sbs_line("MSG,1,1,1,ABC123,1,d,t,d,t,BAI123"))
@@ -183,7 +208,7 @@ class ADSBHubTests(unittest.TestCase):
         try:
             with patch.object(adsbhub, "fetch_text", side_effect=["203.0.113.9", "2001:db8::9"]) as fetch:
                 self.assertEqual(adsbhub.public_addresses(), ("203.0.113.9", "2001:db8::9", "203.0.113.9"))
-            self.assertIn("ip4.adsbhub.org", fetch.call_args_list[0].args[0])
+            self.assertEqual(fetch.call_args_list[0].args[0], "https://www.adsbhub.org/getmyip.php")
         finally:
             os.environ.pop("ADSBHUB_PUBLIC_HOST", None)
 
