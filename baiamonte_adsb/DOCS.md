@@ -43,19 +43,19 @@ Keep **Use attached USB GPS** enabled and leave **USB GPS device** set to `auto`
 | OpenSky | `SERVICE_ENABLE_OPENSKY` | `OPENSKY_USERNAME` and related OpenSky fields |
 | adsb.fi | `SERVICE_ENABLE_ADSBFI` | `ADSBFI_UUID` |
 | RadarBox | `SERVICE_ENABLE_RADARBOX` | `RADARBOX_SHARING_KEY` |
-| ADSBHub | `SERVICE_ENABLE_ADSBHUB` | `ADSBHUB_CKEY` |
+| ADSBHub | `SERVICE_ENABLE_ADSBHUB` | Dynamic-IP key is optional |
 
 Obtain credentials directly from each portal. The dashboard deliberately shows only whether a credential exists; it never returns secret values to the browser.
 
 ## ADSBHub in and out
 
 1. In the app configuration, enable **Send aircraft to ADSBHub**.
-2. Paste the station's dynamic IP update key into **ADSBHub dynamic IP key**. This is a protected password field; do not place the key in GitHub or screenshots.
-3. Leave **ADSBHub public address** set to `auto` and **Update ADSBHub public IP** enabled.
+2. The station's dynamic IP update key is optional and is used only when automatic public-IP updates are wanted. This is a protected password field; do not place the key in GitHub or screenshots.
+3. For a fixed address, select **manual** and enter it. For a changing address, select **auto**, enable public-IP updates, and add the optional key.
 4. Restart the app, open **Watch area**, and copy the displayed public address.
 5. In the ADSBHub station profile select **Client**, choose **Raw**, and use the displayed address for **Station Host (IP)**. The app sends local raw data to `data.adsbhub.org:5001`.
 
-Enable **Receive ADSBHub shared traffic** only when aggregated access has been activated for the station. The app connects to `data.adsbhub.org:5002`, relays that SBS stream on the separate local port `5002`, and—when **Show ADSBHub targets** is enabled—parses it into display-only dashboard and TV targets. Imported targets are labeled **ADSBHub** and are never imported into dump1090 or sent to another portal, preventing a data-sharing loop. Publish host port `5002` under **Network** only if another trusted device needs to read it.
+When ADSBHub sharing is enabled, the app automatically uses two-way mode: it connects to `data.adsbhub.org:5002`, relays that SBS stream on the separate local port `5002`, and—when **Show ADSBHub targets** is enabled—parses it into display-only dashboard and TV targets. Select **ADSBHub outbound only** only when downloads are intentionally unwanted. Imported targets are labeled **ADSBHub** and are never imported into dump1090 or sent to another portal, preventing a data-sharing loop. Publish host port `5002` under **Network** only if another trusted device needs to read it.
 
 The Watch Area reports outbound, inbound, and dynamic-IP state independently. ADSBHub grants aggregated access based on the station's configured public address and requires the station to be actively sharing data.
 

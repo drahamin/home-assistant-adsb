@@ -131,6 +131,12 @@ def dashboard_theme() -> str:
     return theme if theme in {"auto", "light", "dark"} else "auto"
 
 
+def adsbhub_inbound_enabled() -> bool:
+    if enabled("ADSBHUB_OUTBOUND_ONLY", False):
+        return False
+    return enabled("ADSBHUB_INBOUND_ENABLED", False) or enabled("SERVICE_ENABLE_ADSBHUB", False)
+
+
 def current_location() -> dict:
     """Prefer a recent USB GPS fix, then fall back to configured coordinates."""
     if enabled("GPS_USE_USB", True):
@@ -251,7 +257,7 @@ def adsbhub_status() -> dict:
         "outbound_last_data_at": float(status.get("outbound_last_data_at", 0) or 0),
         "outbound_reconnects": int(status.get("outbound_reconnects", 0)),
         "outbound_error": str(status.get("outbound_error", "")),
-        "inbound_enabled": enabled("ADSBHUB_INBOUND_ENABLED", False),
+        "inbound_enabled": adsbhub_inbound_enabled(),
         "inbound_connected": bool(status.get("inbound_connected", False)),
         "inbound_host": os.getenv("ADSBHUB_INBOUND_HOST", "data.adsbhub.org"),
         "inbound_port": int(os.getenv("ADSBHUB_INBOUND_PORT", "5002")),
@@ -582,28 +588,44 @@ def status_payload() -> dict:
     site_lat = location["lat"]
     site_lon = location["lon"]
     records = [clean_aircraft(item, site_lat, site_lon) for item in raw.get("aircraft", []) if isinstance(item, dict)]
-    local_addresses = {item["hex"].lower() for item in records if item["hex"]}
+    local_count = len(records)
+    records_by_address = {item["hex"].lower(): item for item in records if item["hex"]}
     hub = adsbhub_status()
-    hub_records = [
-        clean_aircraft(item, site_lat, site_lon)
-        for item in hub.get("inbound_targets", [])
-        if isinstance(item, dict) and str(item.get("hex", "")).lower() not in local_addresses
-    ]
-    records.extend(hub_records)
+    hub_received = [item for item in hub.get("inbound_targets", []) if isinstance(item, dict) and str(item.get("hex", "")).strip()]
+    hub_addresses = {str(item.get("hex", "")).strip().lower() for item in hub_received}
+    hub_added = 0
+    hub_enriched = 0
+    for raw_target in hub_received:
+        target = clean_aircraft(raw_target, site_lat, site_lon)
+        address = target["hex"].lower()
+        existing = records_by_address.get(address)
+        if existing is None:
+            records.append(target)
+            records_by_address[address] = target
+            hub_added += 1
+            continue
+        contributed = False
+        for field in ("lat", "lon", "altitude", "speed", "track", "squawk", "flight"):
+            if existing.get(field) in {None, "", "Unidentified"} and target.get(field) not in {None, "", "Unidentified"}:
+                existing[field] = target[field]
+                contributed = True
+        if contributed:
+            existing["source"] = "Local + ADSBHub"
+            if all(isinstance(value, (int, float)) for value in (existing["lat"], existing["lon"], site_lat, site_lon)):
+                existing["distance_km"] = round(distance_km(site_lat, site_lon, existing["lat"], existing["lon"]), 2)
+            hub_enriched += 1
     records.sort(key=lambda item: (
         item["distance_km"] is None,
         item["distance_km"] if item["distance_km"] is not None else math.inf,
         item["seen"] is None,
         item["seen"] if item["seen"] is not None else math.inf,
     ))
-    positioned = sum(item["lat"] is not None and item["lon"] is not None for item in records)
     portals = []
     for label, flag, credential in PORTALS:
         is_enabled = enabled(flag, default=flag in {"SERVICE_ENABLE_PIAWARE", "SERVICE_ENABLE_FR24FEED"})
         is_configured = bool(os.getenv(credential, "").strip()) if is_enabled else False
         if label == "ADSBHub" and is_enabled:
-            manual_address = os.getenv("ADSBHUB_PUBLIC_IP_MODE", "auto").strip().lower() == "manual"
-            is_configured = manual_address or not enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True) or is_configured
+            is_configured = True
         portals.append({
             "name": label,
             "enabled": is_enabled,
@@ -638,14 +660,24 @@ def status_payload() -> dict:
         receiver_signature = signature
     weather = weather_config("dashboard")
     weather.update(supplemental_weather(location))
+    try:
+        display_limit = min(5000, max(100, int(os.getenv("ADSBHUB_DISPLAY_LIMIT", "1000"))))
+    except ValueError:
+        display_limit = 1000
+    displayed_records = records[:display_limit]
+    positioned = sum(item["lat"] is not None and item["lon"] is not None for item in displayed_records)
+    hub["displayed_target_count"] = sum(item["hex"].lower() in hub_addresses for item in displayed_records)
+    hub["positioned_target_count"] = sum(item["hex"].lower() in hub_addresses and item["lat"] is not None and item["lon"] is not None for item in displayed_records)
+    hub["enriched_target_count"] = hub_enriched
+    hub["display_truncated"] = max(0, len(records) - len(displayed_records))
     return {
         "generated_at": now,
         "site": os.getenv("HTML_SITE_NAME", "Tenuta Baiamonte Airspace"),
         "receiver": receiver_info,
         "receiver_log": list(RECEIVER_LOG),
         "location": location,
-        "counts": {"aircraft": len(records), "positioned": positioned, "local": len(records) - len(hub_records), "adsbhub": len(hub_records)},
-        "aircraft": records[:250],
+        "counts": {"aircraft": len(displayed_records), "total_aircraft": len(records), "positioned": positioned, "local": local_count, "adsbhub": len(hub_received)},
+        "aircraft": displayed_records,
         "portals": portals,
         "weather": weather,
         "map_style": map_style(),

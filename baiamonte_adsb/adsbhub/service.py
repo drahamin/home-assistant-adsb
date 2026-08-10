@@ -50,6 +50,13 @@ def enabled(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def inbound_enabled() -> bool:
+    """Use two-way ADSBHub by default, with one explicit outbound-only opt-out."""
+    if enabled("ADSBHUB_OUTBOUND_ONLY", False):
+        return False
+    return enabled("ADSBHUB_INBOUND_ENABLED", False) or enabled("SERVICE_ENABLE_ADSBHUB", False)
+
+
 def integer(name: str, default: int) -> int:
     try:
         return int(os.getenv(name, str(default)))
@@ -70,7 +77,7 @@ def add_bytes(name: str, count: int) -> None:
 def write_status() -> None:
     STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
     now = time.time()
-    target_ttl = max(30, integer("ADSBHUB_TARGET_TTL", 120))
+    target_ttl = max(30, integer("ADSBHUB_TARGET_TTL", 300))
     with LOCK:
         expired = [address for address, target in INBOUND_TARGETS.items() if now - float(target.get("last_seen", 0)) > target_ttl]
         for address in expired:
@@ -85,7 +92,7 @@ def write_status() -> None:
             **STATUS,
             "generated_at": time.time(),
             "enabled": enabled("SERVICE_ENABLE_ADSBHUB"),
-            "inbound_enabled": enabled("ADSBHUB_INBOUND_ENABLED"),
+            "inbound_enabled": inbound_enabled(),
             "dynamic_update_enabled": enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True),
             "key_configured": bool(os.getenv("ADSBHUB_CKEY", "").strip()),
             "local_inbound_port": integer("ADSBHUB_LOCAL_INBOUND_PORT", 5002),
@@ -248,8 +255,9 @@ def number(value: str, integer_value: bool = False) -> int | float | None:
 def ingest_sbs_line(line: str, observed_at: float | None = None) -> bool:
     """Update the display-only target cache from one BaseStation/SBS message."""
     fields = line.strip().split(",")
-    if len(fields) < 22 or fields[0] != "MSG":
+    if len(fields) < 5 or fields[0] != "MSG":
         return False
+    fields.extend([""] * (22 - len(fields)))
     address = fields[4].strip().lower()
     if not address:
         return False
@@ -301,7 +309,7 @@ def inbound_worker() -> None:
         listener.listen(8)
         threading.Thread(target=accept_clients, args=(listener,), daemon=True).start()
         while not STOP.is_set():
-            if not enabled("ADSBHUB_INBOUND_ENABLED"):
+            if not inbound_enabled():
                 STOP.wait(5)
                 continue
             try:

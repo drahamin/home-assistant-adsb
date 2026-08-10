@@ -139,10 +139,19 @@ configuration:
     description: Client-mode raw upload port. ADSBHub currently uses 5001.
   ADSBHUB_INBOUND_ENABLED:
     name: Receive ADSBHub shared traffic
-    description: Receive the aggregated SBS stream separately and make it available on the local inbound port without mixing it into the estate receiver.
+    description: Receive the aggregated SBS stream and show its targets. Two-way mode is also enabled automatically when ADSBHub sharing is on.
+  ADSBHUB_OUTBOUND_ONLY:
+    name: ADSBHub outbound only
+    description: Disable ADSBHub target downloads and send local receiver traffic only. Leave off for the requested two-way setup.
   ADSBHUB_DISPLAY_TARGETS:
     name: Show ADSBHub targets
     description: Display inbound ADSBHub aircraft on the Baiamonte dashboard and TV maps without sending them to any feeder.
+  ADSBHUB_TARGET_TTL:
+    name: ADSBHub target retention
+    description: Seconds to retain an inbound aircraft between SBS updates. Five minutes is recommended for a complete target picture.
+  ADSBHUB_DISPLAY_LIMIT:
+    name: ADSBHub display limit
+    description: Maximum combined aircraft shown on the dashboard and TV maps. Increase carefully on slower displays.
   ADSBHUB_INBOUND_HOST:
     name: ADSBHub download server
     description: ADSBHub source for the aggregated inbound stream.

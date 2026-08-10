@@ -126,6 +126,24 @@ class ADSBHubTests(unittest.TestCase):
         self.assertEqual(target["messages"], 2)
         adsbhub.INBOUND_TARGETS.clear()
 
+    def test_shortened_sbs_message_without_trailing_fields_is_accepted(self):
+        adsbhub.INBOUND_TARGETS.clear()
+        self.assertTrue(adsbhub.ingest_sbs_line("MSG,1,1,1,ABC123,1,d,t,d,t,BAI123"))
+        self.assertEqual(adsbhub.INBOUND_TARGETS["abc123"]["flight"], "BAI123")
+        adsbhub.INBOUND_TARGETS.clear()
+
+    def test_adsbhub_sharing_defaults_to_two_way_with_outbound_only_opt_out(self):
+        os.environ["SERVICE_ENABLE_ADSBHUB"] = "true"
+        os.environ["ADSBHUB_INBOUND_ENABLED"] = "false"
+        try:
+            self.assertTrue(adsbhub.inbound_enabled())
+            os.environ["ADSBHUB_OUTBOUND_ONLY"] = "true"
+            self.assertFalse(adsbhub.inbound_enabled())
+        finally:
+            os.environ.pop("SERVICE_ENABLE_ADSBHUB", None)
+            os.environ.pop("ADSBHUB_INBOUND_ENABLED", None)
+            os.environ.pop("ADSBHUB_OUTBOUND_ONLY", None)
+
     def test_status_exposes_targets_without_any_station_key(self):
         old_file = adsbhub.STATUS_FILE
         with tempfile.TemporaryDirectory() as tmp:
