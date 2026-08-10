@@ -98,6 +98,9 @@ configuration:
   MAP_STYLE:
     name: Base map style
     description: Choose Standard, Humanitarian, Topographic, Dark, or Satellite tiles for the dashboard and TV maps.
+  DASHBOARD_THEME:
+    name: Dashboard appearance
+    description: Choose Automatic to follow the display, or force the Home Assistant dashboard to Light or Dark mode.
   HOME_AIRPORT:
     name: Home airport
     description: ICAO airport used for the arrivals and departures board. Catania Fontanarossa is LICC.

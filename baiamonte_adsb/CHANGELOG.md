@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.0
+
+- Adds an explicit **Dashboard appearance** setting with Automatic, Light, and Dark choices.
+- Keeps Automatic mode synchronized with the browser or Home Assistant display preference.
+- Adds a complete forced-dark Baiamonte palette for dashboard cards, controls, weather, aircraft, VHF, and ADSBHub status.
+- Distinguishes ADSBHub socket connectivity from verified byte flow: **Feeding**, **Receiving**, and **Both flowing** now confirm active data movement.
+
 ## 2.2.1
 
 - Keeps ADSBHub outbound port `5001` and inbound port `5002` sessions open through quiet traffic periods instead of treating an idle socket as a failure.
