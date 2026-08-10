@@ -36,6 +36,20 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(dashboard.dashboard_theme(), "auto")
         os.environ.pop("DASHBOARD_THEME", None)
 
+    def test_baiamonte_touch_icons_and_web_manifest_are_available(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        dashboard_html = (web / "index.html").read_text()
+        tv_html = (web / "display.html").read_text()
+        manifest = json.loads((web / "site.webmanifest").read_text())
+        for html in (dashboard_html, tv_html):
+            self.assertIn('rel="apple-touch-icon"', html)
+            self.assertIn('rel="manifest"', html)
+            self.assertIn('favicon-32.png', html)
+        self.assertEqual(manifest["short_name"], "Baiamonte ADS-B")
+        self.assertEqual({item["sizes"] for item in manifest["icons"]}, {"192x192", "512x512"})
+        for filename in ("favicon-16.png", "favicon-32.png", "apple-touch-icon.png", "app-icon-192.png", "app-icon-512.png"):
+            self.assertTrue((web / filename).is_file())
+
     def test_tv_layout_uses_fullscreen_map_and_nearest_aircraft_rail(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
         html = (web / "display.html").read_text()

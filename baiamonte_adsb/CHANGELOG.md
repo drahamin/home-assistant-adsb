@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.2
+
+- Adds Baiamonte favicon sizes, an Apple touch icon, and 192/512 px installable web-app icons.
+- Adds standalone mobile web-app metadata and a branded manifest for the dashboard and TV view.
+- Preserves the exact existing Baiamonte aviation mark across Home Assistant, browsers, saved home-screen shortcuts, and dashboard displays.
+
 ## 2.3.1
 
 - Parses the inbound ADSBHub SBS stream into a display-only aircraft cache.

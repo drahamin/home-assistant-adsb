@@ -793,7 +793,7 @@ class Handler(BaseHTTPRequestHandler):
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
         if relative in {"display", "tv"}:
             relative = "display.html"
-        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "detail-theme.css", "airband-theme.css", "operations-theme.css", "enrichment-theme.css", "adsbhub-targets.css", "theme.css", "forced-dark.css", "theme-control.js", "adsbhub-health.js", "airport.js", "operations.js", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
+        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "detail-theme.css", "airband-theme.css", "operations-theme.css", "enrichment-theme.css", "adsbhub-targets.css", "theme.css", "forced-dark.css", "theme-control.js", "adsbhub-health.js", "airport.js", "operations.js", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png", "favicon-16.png", "favicon-32.png", "apple-touch-icon.png", "app-icon-192.png", "app-icon-512.png", "site.webmanifest"}:
             relative = "index.html"
         target = WEB_ROOT / relative
         try:
