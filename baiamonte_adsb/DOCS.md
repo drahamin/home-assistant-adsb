@@ -55,7 +55,7 @@ Obtain credentials directly from each portal. The dashboard deliberately shows o
 4. Restart the app, open **Watch area**, and copy the displayed public address.
 5. In the ADSBHub station profile select **Client**, choose **Raw**, and use the displayed address for **Station Host (IP)**. The app sends local raw data to `data.adsbhub.org:5001`.
 
-Enable **Receive ADSBHub shared traffic** only when aggregated access has been activated for the station. The app connects to `data.adsbhub.org:5002` and relays that SBS stream on the separate local port `5002`. Publish host port `5002` under **Network** only if another trusted device needs to read it. Aggregated aircraft are deliberately never imported into dump1090 or sent to other portals, preventing a data-sharing loop.
+Enable **Receive ADSBHub shared traffic** only when aggregated access has been activated for the station. The app connects to `data.adsbhub.org:5002`, relays that SBS stream on the separate local port `5002`, and—when **Show ADSBHub targets** is enabled—parses it into display-only dashboard and TV targets. Imported targets are labeled **ADSBHub** and are never imported into dump1090 or sent to another portal, preventing a data-sharing loop. Publish host port `5002` under **Network** only if another trusted device needs to read it.
 
 The Watch Area reports outbound, inbound, and dynamic-IP state independently. ADSBHub grants aggregated access based on the station's configured public address and requires the station to be actively sharing data.
 

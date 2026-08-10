@@ -140,6 +140,9 @@ configuration:
   ADSBHUB_INBOUND_ENABLED:
     name: Receive ADSBHub shared traffic
     description: Receive the aggregated SBS stream separately and make it available on the local inbound port without mixing it into the estate receiver.
+  ADSBHUB_DISPLAY_TARGETS:
+    name: Show ADSBHub targets
+    description: Display inbound ADSBHub aircraft on the Baiamonte dashboard and TV maps without sending them to any feeder.
   ADSBHUB_INBOUND_HOST:
     name: ADSBHub download server
     description: ADSBHub source for the aggregated inbound stream.

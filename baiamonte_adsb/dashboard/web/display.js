@@ -30,7 +30,7 @@ function flightRow(item){
   const detail=document.createElement('div');
   detail.className='flight-detail';
   const identityNode=document.createElement('span');identityNode.textContent=identity;
-  const source=document.createElement('em');source.textContent='ADS-B contact';
+  const source=document.createElement('em');source.textContent=item.source||'Local receiver';
   detail.append(identityNode,source);
   main.append(title,meta,detail);
   row.append(flag,main);
@@ -52,11 +52,12 @@ function addAircraftMarker(view,item){
   if(point.x<0||point.y<0||point.x>map.clientWidth||point.y>map.clientHeight)return;
   const marker=document.createElement('div');
   marker.className='plane';
+  if(item.source==='ADSBHub')marker.classList.add('adsbhub-target');
   marker.style.left=`${point.x}px`;
   marker.style.top=`${point.y}px`;
   marker.innerHTML=`<span class="plane-icon">${BaiamonteAircraftVisual.icon}</span><span class="plane-label"></span>`;
   const band=BaiamonteAircraftVisual.apply(marker,item.altitude,item.track);
-  marker.title=`${item.flight||String(item.hex||'Unknown').toUpperCase()} · ${fmt(item.altitude)} ft · ${band.label}`;
+  marker.title=`${item.flight||String(item.hex||'Unknown').toUpperCase()} · ${item.source||'Local receiver'} · ${fmt(item.altitude)} ft · ${band.label}`;
   marker.querySelector('.plane-label').textContent=item.flight||String(item.hex||'Unknown').toUpperCase();
   map.appendChild(marker);
 }

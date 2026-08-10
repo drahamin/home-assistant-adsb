@@ -67,6 +67,19 @@ class DashboardTests(unittest.TestCase):
         self.assertNotIn("<span>▲</span>", dashboard_script)
         self.assertNotIn(">▲</i>", tv_script)
 
+    def test_adsbhub_targets_are_labeled_on_dashboard_and_tv(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        dashboard_html = (web / "index.html").read_text()
+        tv_html = (web / "display.html").read_text()
+        dashboard_script = (web / "app.js").read_text()
+        tv_script = (web / "display.js").read_text()
+        health_script = (web / "adsbhub-health.js").read_text()
+        self.assertIn('href="adsbhub-targets.css?v=231"', dashboard_html)
+        self.assertIn('href="adsbhub-targets.css?v=231"', tv_html)
+        self.assertIn("adsbhub-target", dashboard_script)
+        self.assertIn("adsbhub-target", tv_script)
+        self.assertIn("display targets", health_script)
+
     def test_dashboard_has_ingress_vhf_player_and_back_navigation(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
         html = (web / "index.html").read_text()
@@ -135,7 +148,38 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(item["country_code"], "IE")
         self.assertEqual(item["carrier_country_code"], "IT")
         self.assertEqual(item["operator"], "ITA Airways")
+        self.assertEqual(item["source"], "Local receiver")
         self.assertIsNone(item["distance_km"])
+
+    def test_adsbhub_targets_are_merged_for_display_but_local_targets_win(self):
+        old_files = dashboard.AIRCRAFT_FILES
+        old_status = dashboard.ADSBHUB_STATUS_FILE
+        with tempfile.TemporaryDirectory() as tmp:
+            aircraft_file = Path(tmp) / "aircraft.json"
+            status_file = Path(tmp) / "adsbhub.json"
+            aircraft_file.write_text(json.dumps({"aircraft": [{"hex": "abc123", "flight": "LOCAL1", "lat": 37.8, "lon": 14.9}]}))
+            status_file.write_text(json.dumps({"inbound_targets": [
+                {"hex": "abc123", "flight": "DUPLICATE", "lat": 37.8, "lon": 14.9, "source": "ADSBHub"},
+                {"hex": "def456", "flight": "HUB2", "lat": 37.9, "lon": 15.1, "source": "ADSBHub"},
+            ]}))
+            dashboard.AIRCRAFT_FILES = (aircraft_file,)
+            dashboard.ADSBHUB_STATUS_FILE = status_file
+            os.environ["ADSBHUB_INBOUND_ENABLED"] = "true"
+            os.environ["ADSBHUB_DISPLAY_TARGETS"] = "true"
+            try:
+                payload = dashboard.status_payload()
+                by_hex = {item["hex"]: item for item in payload["aircraft"]}
+                self.assertEqual(set(by_hex), {"abc123", "def456"})
+                self.assertEqual(by_hex["abc123"]["source"], "Local receiver")
+                self.assertEqual(by_hex["def456"]["source"], "ADSBHub")
+                self.assertEqual(payload["counts"]["local"], 1)
+                self.assertEqual(payload["counts"]["adsbhub"], 1)
+                self.assertNotIn("inbound_targets", payload["adsbhub"])
+            finally:
+                dashboard.AIRCRAFT_FILES = old_files
+                dashboard.ADSBHUB_STATUS_FILE = old_status
+                os.environ.pop("ADSBHUB_INBOUND_ENABLED", None)
+                os.environ.pop("ADSBHUB_DISPLAY_TARGETS", None)
 
     def test_last_valid_aircraft_snapshot_survives_partial_decoder_write(self):
         old_files = dashboard.AIRCRAFT_FILES
@@ -250,7 +294,7 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("INBOUND SBS", html)
         self.assertIn("renderADSBHub", script)
         self.assertIn("api/adsbhub-public-ip", script)
-        self.assertIn('src="adsbhub-health.js?v=230"', html)
+        self.assertIn('src="adsbhub-health.js?v=231"', html)
         self.assertIn("Both flowing", (web / "adsbhub-health.js").read_text())
 
     def test_adsbhub_status_distinguishes_connected_from_data_flowing(self):
