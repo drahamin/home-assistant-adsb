@@ -15,6 +15,8 @@ Baiamonte ADS-B is a fully branded Home Assistant app for receiving local 1090 M
 
 Each network is optional. Enable only the services for which you have credentials and intend to share data.
 
+ADSBHub includes a complete two-way setup: raw local aircraft data is uploaded in Client mode, the optional aggregated SBS feed is kept separate on local port `5002`, and the Watch Area shows the public address needed for the ADSBHub station profile.
+
 ## Installation
 
 Add this repository to the Home Assistant App Store:

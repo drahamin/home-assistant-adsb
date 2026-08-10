@@ -47,6 +47,18 @@ Keep **Use attached USB GPS** enabled and leave **USB GPS device** set to `auto`
 
 Obtain credentials directly from each portal. The dashboard deliberately shows only whether a credential exists; it never returns secret values to the browser.
 
+## ADSBHub in and out
+
+1. In the app configuration, enable **Send aircraft to ADSBHub**.
+2. Paste the station's dynamic IP update key into **ADSBHub dynamic IP key**. This is a protected password field; do not place the key in GitHub or screenshots.
+3. Leave **ADSBHub public address** set to `auto` and **Update ADSBHub public IP** enabled.
+4. Restart the app, open **Watch area**, and copy the displayed public address.
+5. In the ADSBHub station profile select **Client**, choose **Raw**, and use the displayed address for **Station Host (IP)**. The app sends local raw data to `data.adsbhub.org:5001`.
+
+Enable **Receive ADSBHub shared traffic** only when aggregated access has been activated for the station. The app connects to `data.adsbhub.org:5002` and relays that SBS stream on the separate local port `5002`. Publish host port `5002` under **Network** only if another trusted device needs to read it. Aggregated aircraft are deliberately never imported into dump1090 or sent to other portals, preventing a data-sharing loop.
+
+The Watch Area reports outbound, inbound, and dynamic-IP state independently. ADSBHub grants aggregated access based on the station's configured public address and requires the station to be actively sharing data.
+
 ## Interfaces
 
 - Home Assistant ingress on internal port `8099`: branded Baiamonte operations dashboard.
@@ -56,6 +68,7 @@ Obtain credentials directly from each portal. The dashboard deliberately shows o
 - Optional port `8754`: FlightRadar24 feeder status.
 - Optional port `30053`: Plane Finder feeder status.
 - Optional port `8000`: direct local VHF Icecast audio; leave unpublished when using the ingress player.
+- Optional port `5002`: separate ADSBHub aggregated SBS output for trusted local consumers.
 
 Internal port `8099` is published as host port `8998` by default for the estate TV display. To use another port, open the app's **Network** section, change the host-side value beside **TV display host port**, save, and restart the app. The container and Home Assistant ingress continue to use internal port `8099`; this is expected.
 
@@ -100,6 +113,8 @@ The bundled `adsb-hassio-sensors` service publishes feeder health and counters t
 - **USB GPS is waiting:** confirm the device appears as `/dev/ttyACM*` or `/dev/ttyUSB*`, then set the exact path and baud rate in the app configuration if automatic detection cannot distinguish it from another serial device.
 - **Aircraft appear without positions:** some Mode-S contacts do not provide a locally decoded position; more messages or a suitable receiver location may be required.
 - **Portal says Needs key:** add the matching portal credential and restart the app.
+- **ADSBHub outbound is Reconnecting:** confirm the local decoder is running, outbound TCP `5001` is allowed, and ADSBHub has the public address shown in Watch Area.
+- **ADSBHub inbound is Waiting for access:** confirm ADSBHub has activated aggregated-data access for the public address and that this station is actively sharing. Inbound access is independent from the outbound connection.
 - **TV port does not appear to change:** only edit the host-side value under **Network**. Internal port `8099` is fixed for Home Assistant ingress. Save the network setting, then restart the app.
 - **Port conflict:** leave optional external ports disabled unless you explicitly need them. The sidebar dashboard works through ingress on its own internal port.
 - **VHF stream stays on Starting:** confirm a second RTL-SDR is attached, set **VHF radio device** to its index, and make sure it differs from **ADS-B Radio Device**.

@@ -1,0 +1,3 @@
+#!/command/with-contenv bash
+source /export-env-from-config.sh
+exec python3 /opt/baiamonte/adsbhub/service.py

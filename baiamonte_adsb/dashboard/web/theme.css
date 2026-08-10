@@ -3,7 +3,7 @@
   :root{--ink:#f1ede5;--muted:#aaa094;--line:#3b362d;--paper:#0f0e0d;--white:#1b1917;--shadow:0 18px 50px rgba(0,0,0,.38)}
   html,body{background:#0b0b0b;color:var(--ink)}
   header,.section-head span{color:#aaa094}
-  .panel,.metric-card,.aircraft-card,.portal-card,.summary-strip,.config-panel,.airband-player{background:#1b1917;border-color:#3b362d;box-shadow:0 8px 25px rgba(0,0,0,.32)}
+  .panel,.metric-card,.aircraft-card,.portal-card,.summary-strip,.config-panel,.airband-player,.adsbhub-panel,.adsbhub-routes>div{background:#1b1917;border-color:#3b362d;box-shadow:0 8px 25px rgba(0,0,0,.32)}
   .summary-strip div,.recent-row,.portal-row,.aircraft-metrics,.movement-row{border-color:#3b362d}
   .config-panel input,.config-panel select,.admin-code input{background:#11100f;border-color:#51483d;color:#f2ece4}
   .diagnostic-grid div,.device-list div,.feeder-service,.frequency-list span,.forecast-list div,.aviation-weather article,.weather-current>div,.weather-forecast>div,.metar-card{background:#151310;border-color:#3b362d}

@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 2.1.1
+version: 2.2.0
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -33,6 +33,7 @@ ports:
   8754/tcp: null
   30053/tcp: null
   8000/tcp: null
+  5002/tcp: null
 ports_description:
   8099/tcp: "TV display host port 8998 (internal ingress port remains 8099)"
   30001/tcp: "TCP raw input"
@@ -44,6 +45,7 @@ ports_description:
   8754/tcp: "Optional direct access to FlightRadar24 feeder status"
   30053/tcp: "Optional direct access to Plane Finder feeder status"
   8000/tcp: "Optional direct VHF airband audio stream (dashboard playback uses ingress)"
+  5002/tcp: "Optional local ADSBHub aggregated SBS feed (inbound only)"
 options:
   SERVICE_ENABLE_DUMP1090: true
   SERVICE_ENABLE_PIAWARE: true
@@ -81,6 +83,18 @@ options:
   HOME_AIRPORT: "LICC"
   FLIGHTAWARE_ENRICHMENT: false
   FLIGHTAWARE_AEROAPI_KEY: ""
+  SERVICE_ENABLE_ADSBHUB: false
+  ADSBHUB_CKEY: ""
+  ADSBHUB_PUBLIC_HOST: "auto"
+  ADSBHUB_DYNAMIC_IP_UPDATE: true
+  ADSBHUB_SOURCE_HOST: "127.0.0.1"
+  ADSBHUB_SOURCE_PORT: 30002
+  ADSBHUB_OUTBOUND_HOST: "data.adsbhub.org"
+  ADSBHUB_OUTBOUND_PORT: 5001
+  ADSBHUB_INBOUND_ENABLED: false
+  ADSBHUB_INBOUND_HOST: "data.adsbhub.org"
+  ADSBHUB_INBOUND_PORT: 5002
+  ADSBHUB_LOCAL_INBOUND_PORT: 5002
   PIAWARE_FEEDER_DASH_ID: ""
   FR24FEED_FR24KEY: ""
   ADSBEXCHANGE_UUID: ""
@@ -135,7 +149,7 @@ schema:
   SERVICE_ENABLE_OPENSKY: bool?
   SERVICE_ENABLE_ADSBFI: bool?
   SERVICE_ENABLE_RADARBOX: bool?
-  SERVICE_ENABLE_ADSBHUB: bool?
+  SERVICE_ENABLE_ADSBHUB: bool
   PIAWARE_FEEDER_DASH_ID: str?
   PIAWARE_RECEIVER_DASH_TYPE: str?
   PIAWARE_RECEIVER_DASH_HOST: str?
@@ -169,7 +183,17 @@ schema:
   RADARBOX_INPUT_HOST: str?
   RADARBOX_INPUT_PORT: port?
   RADARBOX_MLAT: bool?
-  ADSBHUB_CKEY: str?
+  ADSBHUB_CKEY: password?
+  ADSBHUB_PUBLIC_HOST: str
+  ADSBHUB_DYNAMIC_IP_UPDATE: bool
+  ADSBHUB_SOURCE_HOST: str
+  ADSBHUB_SOURCE_PORT: port
+  ADSBHUB_OUTBOUND_HOST: str
+  ADSBHUB_OUTBOUND_PORT: port
+  ADSBHUB_INBOUND_ENABLED: bool
+  ADSBHUB_INBOUND_HOST: str
+  ADSBHUB_INBOUND_PORT: port
+  ADSBHUB_LOCAL_INBOUND_PORT: port
   HTML_SITE_LAT: match([+-]?(([1-9][0-9]*)|(0))([.,][0-9]+)?|HOMEASSISTANT_LATITUDE)?
   HTML_SITE_LON: match([+-]?(([1-9][0-9]*)|(0))([.,][0-9]+)?|HOMEASSISTANT_LONGITUDE)?
   HTML_SITE_ALT: match([+-]?(([1-9][0-9]*)|(0))([.,][0-9]+)?|HOMEASSISTANT_ELEVATION)?

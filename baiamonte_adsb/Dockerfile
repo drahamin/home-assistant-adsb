@@ -46,13 +46,17 @@ RUN chmod +x /export-env-from-config.sh \
 COPY dashboard /opt/baiamonte/dashboard
 COPY gps /opt/baiamonte/gps
 COPY airband /opt/baiamonte/airband
+COPY adsbhub /opt/baiamonte/adsbhub
 COPY --from=airband-builder /opt/rtl-airband/bin/rtl_airband /usr/local/bin/rtl_airband
 COPY rootfs /
 RUN chmod +x /opt/baiamonte/airband/render_config.py \
+    /opt/baiamonte/adsbhub/service.py \
     /etc/s6-overlay/s6-rc.d/baiamonte-dashboard/run \
     /etc/s6-overlay/s6-rc.d/baiamonte-gps/run \
     /etc/s6-overlay/s6-rc.d/baiamonte-icecast/run \
     /etc/s6-overlay/s6-rc.d/baiamonte-airband/run \
+    /etc/s6-overlay/s6-rc.d/adsbhub/run \
+    /etc/s6-overlay/s6-rc.d/conf-adsbhub/script \
     && touch /etc/s6-overlay/s6-rc.d/user/contents.d/baiamonte-dashboard
 
 LABEL io.hass.type="app" \

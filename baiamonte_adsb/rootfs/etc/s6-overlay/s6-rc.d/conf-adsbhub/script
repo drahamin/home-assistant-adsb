@@ -1,0 +1,7 @@
+#!/command/with-contenv bash
+source /export-env-from-config.sh
+
+# Configuration is handled by the Baiamonte bridge. Keeping this oneshot
+# preserves the dependency graph of the upstream add-on without downloading
+# or modifying a feeder script at container startup.
+exit 0

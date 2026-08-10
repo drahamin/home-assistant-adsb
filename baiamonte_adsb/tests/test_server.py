@@ -201,6 +201,8 @@ class DashboardTests(unittest.TestCase):
             os.environ["SERVICE_ENABLE_FR24FEED"] = "true"
             os.environ["AIRBAND_SOURCE_PASSWORD"] = "audio-source-secret"
             os.environ["AIRNAV_VHF_PASSWORD"] = "airnav-secret"
+            os.environ["ADSBHUB_CKEY"] = "adsbhub-secret"
+            os.environ["SERVICE_ENABLE_ADSBHUB"] = "true"
             try:
                 payload = dashboard.status_payload()
                 encoded = json.dumps(payload)
@@ -214,12 +216,26 @@ class DashboardTests(unittest.TestCase):
                 self.assertIn("airband", payload)
                 self.assertNotIn("audio-source-secret", encoded)
                 self.assertNotIn("airnav-secret", encoded)
+                self.assertNotIn("adsbhub-secret", encoded)
+                self.assertIn("adsbhub", payload)
+                self.assertTrue(payload["adsbhub"]["configured"])
             finally:
                 dashboard.AIRCRAFT_FILES = old_files
                 os.environ.pop("FR24FEED_FR24KEY", None)
                 os.environ.pop("SERVICE_ENABLE_FR24FEED", None)
                 os.environ.pop("AIRBAND_SOURCE_PASSWORD", None)
                 os.environ.pop("AIRNAV_VHF_PASSWORD", None)
+                os.environ.pop("ADSBHUB_CKEY", None)
+                os.environ.pop("SERVICE_ENABLE_ADSBHUB", None)
+
+    def test_adsbhub_panel_shows_public_address_and_separate_routes(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        html = (web / "index.html").read_text()
+        script = (web / "operations.js").read_text()
+        self.assertIn('id="adsbhub-public-ip"', html)
+        self.assertIn("OUTBOUND RAW", html)
+        self.assertIn("INBOUND SBS", html)
+        self.assertIn("renderADSBHub", script)
 
     def test_airband_status_warns_when_both_roles_use_one_radio(self):
         os.environ.update({"AIRBAND_ENABLED": "true", "RECEIVER_DEVICE_INDEX": "1", "VHF_DEVICE": "1"})
