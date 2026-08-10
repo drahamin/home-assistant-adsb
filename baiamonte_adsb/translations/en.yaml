@@ -113,9 +113,12 @@ configuration:
   ADSBHUB_CKEY:
     name: ADSBHub dynamic IP key
     description: Private station key from ADSBHub Settings. It is masked, used only for IP updates, and never shown in the dashboard.
+  ADSBHUB_PUBLIC_IP_MODE:
+    name: ADSBHub public IP detection
+    description: Choose auto to detect the current external address, or manual when ADSBHub must use a fixed public IP or hostname.
   ADSBHUB_PUBLIC_HOST:
-    name: ADSBHub public address
-    description: Use auto to detect and display this site's current public address, or enter a fixed public IP or hostname.
+    name: ADSBHub manual public IP or hostname
+    description: Used only in manual mode. In automatic mode leave this as auto and use Check public IP now in Watch Area to identify the address ADSBHub sees.
   ADSBHUB_DYNAMIC_IP_UPDATE:
     name: Update ADSBHub public IP
     description: Keep the ADSBHub Station Host address current using the private dynamic IP key.

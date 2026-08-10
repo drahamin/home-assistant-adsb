@@ -59,6 +59,10 @@ Enable **Receive ADSBHub shared traffic** only when aggregated access has been a
 
 The Watch Area reports outbound, inbound, and dynamic-IP state independently. ADSBHub grants aggregated access based on the station's configured public address and requires the station to be actively sharing data.
 
+Both ADSBHub TCP sessions remain open during quiet traffic periods and use operating-system TCP keepalive to recover from a failed network path. **Both connected** means the raw upload and the optional aggregated download are simultaneously established. Each route shows its own error and byte count when troubleshooting.
+
+Use **ADSBHub public IP detection → auto** for a changing external address. Choose `manual` and enter the fixed address only when required. **Check public IP now** in Watch Area asks ADSBHub's own address service what it currently sees and warns when that differs from the manual value.
+
 ## Interfaces
 
 - Home Assistant ingress on internal port `8099`: branded Baiamonte operations dashboard.

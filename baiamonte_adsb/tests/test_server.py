@@ -233,9 +233,36 @@ class DashboardTests(unittest.TestCase):
         html = (web / "index.html").read_text()
         script = (web / "operations.js").read_text()
         self.assertIn('id="adsbhub-public-ip"', html)
+        self.assertIn('id="check-adsbhub-ip"', html)
         self.assertIn("OUTBOUND RAW", html)
         self.assertIn("INBOUND SBS", html)
         self.assertIn("renderADSBHub", script)
+        self.assertIn("api/adsbhub-public-ip", script)
+
+    def test_adsbhub_public_ip_check_reports_manual_mismatch_without_credentials(self):
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self):
+                return b"203.0.113.9"
+
+        os.environ["ADSBHUB_PUBLIC_IP_MODE"] = "manual"
+        os.environ["ADSBHUB_PUBLIC_HOST"] = "198.51.100.44"
+        os.environ["ADSBHUB_CKEY"] = "never-return-this"
+        try:
+            with patch.object(dashboard, "urlopen", return_value=Response()):
+                result = dashboard.adsbhub_public_ip_check()
+            self.assertEqual(result["detected_public_ipv4"], "203.0.113.9")
+            self.assertFalse(result["matches"])
+            self.assertNotIn("never-return-this", json.dumps(result))
+        finally:
+            os.environ.pop("ADSBHUB_PUBLIC_IP_MODE", None)
+            os.environ.pop("ADSBHUB_PUBLIC_HOST", None)
+            os.environ.pop("ADSBHUB_CKEY", None)
 
     def test_airband_status_warns_when_both_roles_use_one_radio(self):
         os.environ.update({"AIRBAND_ENABLED": "true", "RECEIVER_DEVICE_INDEX": "1", "VHF_DEVICE": "1"})

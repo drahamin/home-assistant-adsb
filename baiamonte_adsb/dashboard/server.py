@@ -221,16 +221,27 @@ def adsbhub_status() -> dict:
     except (OSError, ValueError, json.JSONDecodeError):
         pass
     public_host = os.getenv("ADSBHUB_PUBLIC_HOST", "auto").strip() or "auto"
+    public_mode = os.getenv("ADSBHUB_PUBLIC_IP_MODE", "").strip().lower()
+    if public_mode not in {"auto", "manual"}:
+        public_mode = "auto" if public_host.lower() == "auto" else "manual"
+    detected_public_ipv4 = str(status.get("detected_public_ipv4", status.get("public_ipv4", "")))
     return {
         "enabled": enabled("SERVICE_ENABLE_ADSBHUB", False),
         "configured": bool(os.getenv("ADSBHUB_CKEY", "").strip()),
         "public_host_setting": public_host,
+        "public_ip_mode": public_mode,
         "public_ipv4": str(status.get("public_ipv4", "")),
+        "detected_public_ipv4": detected_public_ipv4,
+        "public_ip_matches": public_mode == "auto" or not detected_public_ipv4 or detected_public_ipv4 == public_host,
         "public_ipv6": str(status.get("public_ipv6", "")),
         "outbound_connected": bool(status.get("outbound_connected", False)),
         "outbound_host": os.getenv("ADSBHUB_OUTBOUND_HOST", "data.adsbhub.org"),
         "outbound_port": int(os.getenv("ADSBHUB_OUTBOUND_PORT", "5001")),
         "outbound_bytes": int(status.get("outbound_bytes", 0)),
+        "outbound_connected_at": float(status.get("outbound_connected_at", 0) or 0),
+        "outbound_last_data_at": float(status.get("outbound_last_data_at", 0) or 0),
+        "outbound_reconnects": int(status.get("outbound_reconnects", 0)),
+        "outbound_error": str(status.get("outbound_error", "")),
         "inbound_enabled": enabled("ADSBHUB_INBOUND_ENABLED", False),
         "inbound_connected": bool(status.get("inbound_connected", False)),
         "inbound_host": os.getenv("ADSBHUB_INBOUND_HOST", "data.adsbhub.org"),
@@ -238,10 +249,30 @@ def adsbhub_status() -> dict:
         "local_inbound_port": int(os.getenv("ADSBHUB_LOCAL_INBOUND_PORT", "5002")),
         "inbound_clients": int(status.get("inbound_clients", 0)),
         "inbound_bytes": int(status.get("inbound_bytes", 0)),
+        "inbound_connected_at": float(status.get("inbound_connected_at", 0) or 0),
+        "inbound_last_data_at": float(status.get("inbound_last_data_at", 0) or 0),
+        "inbound_reconnects": int(status.get("inbound_reconnects", 0)),
+        "inbound_error": str(status.get("inbound_error", "")),
         "dynamic_update_enabled": enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True),
         "dynamic_update_ok": bool(status.get("dynamic_update_ok", False)),
         "last_update": float(status.get("last_update", 0) or 0),
-        "last_error": str(status.get("last_error", "")),
+        "public_address_error": str(status.get("public_address_error", "")),
+    }
+
+
+def adsbhub_public_ip_check() -> dict:
+    """Detect the current external IPv4 without returning or using any credential."""
+    request = Request("https://ip4.adsbhub.org/getmyip.php", headers={"User-Agent": "Tenuta-Baiamonte-ADSB/2.2"})
+    with urlopen(request, timeout=8) as response:
+        detected = response.read().decode("utf-8").strip()
+    status = adsbhub_status()
+    configured = str(status["public_host_setting"])
+    mode = str(status["public_ip_mode"])
+    return {
+        "detected_public_ipv4": detected,
+        "configured_public_host": configured,
+        "mode": mode,
+        "matches": mode == "auto" or detected == configured,
     }
 
 
@@ -648,6 +679,13 @@ class Handler(BaseHTTPRequestHandler):
                 payload = adsbdb_enrichment(query.get("icao", [""])[0], query.get("callsign", [""])[0])
                 self.send_bytes(json.dumps(payload, separators=(",", ":")).encode(), "application/json")
             except (OSError, ValueError, json.JSONDecodeError) as error:
+                self.send_bytes(json.dumps({"error": str(error)}).encode(), "application/json", HTTPStatus.BAD_GATEWAY)
+            return
+        if path.rstrip("/").endswith("/api/adsbhub-public-ip") or path == "/api/adsbhub-public-ip":
+            try:
+                payload = adsbhub_public_ip_check()
+                self.send_bytes(json.dumps(payload, separators=(",", ":")).encode(), "application/json")
+            except OSError as error:
                 self.send_bytes(json.dumps({"error": str(error)}).encode(), "application/json", HTTPStatus.BAD_GATEWAY)
             return
         if path.rstrip("/").endswith("/api/airport-board") or path == "/api/airport-board":
