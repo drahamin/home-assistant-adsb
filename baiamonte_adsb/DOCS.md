@@ -96,6 +96,12 @@ The dashboard also includes **VHF airband**, **Weather**, and **Airport board** 
 
 The core shared navigation pages remain **Overview**, **Live traffic**, and **Watch area**. Watch Area includes the receiver log, radio profile, GPS source, and feeder portal status.
 
+## Dashboard appearance
+
+Use **Dashboard appearance** to select `auto`, `light`, or `dark`. Automatic follows the browser or Home Assistant display preference. Light and Dark force the selected Baiamonte palette regardless of the device theme. The fullscreen TV view remains optimized for a dark wall display independently.
+
+In Watch Area, ADSBHub **Connected** means the TCP session is open. **Feeding** and **Receiving** mean bytes have actually moved in that direction since the app started. **Both flowing** is the strongest confirmation that the enabled outbound and inbound paths are working.
+
 ## Data ports
 
 Ports `30001` through `30005` retain standard dump1090 raw, Beast, and BaseStation inputs/outputs. Leave them unpublished unless another trusted receiver or local service needs them.

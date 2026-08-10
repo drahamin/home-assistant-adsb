@@ -126,6 +126,11 @@ def map_style() -> str:
     return style if style in MAP_TILE_PROVIDERS else "standard"
 
 
+def dashboard_theme() -> str:
+    theme = os.getenv("DASHBOARD_THEME", "auto").strip().lower()
+    return theme if theme in {"auto", "light", "dark"} else "auto"
+
+
 def current_location() -> dict:
     """Prefer a recent USB GPS fix, then fall back to configured coordinates."""
     if enabled("GPS_USE_USB", True):
@@ -238,6 +243,7 @@ def adsbhub_status() -> dict:
         "outbound_host": os.getenv("ADSBHUB_OUTBOUND_HOST", "data.adsbhub.org"),
         "outbound_port": int(os.getenv("ADSBHUB_OUTBOUND_PORT", "5001")),
         "outbound_bytes": int(status.get("outbound_bytes", 0)),
+        "outbound_active": bool(status.get("outbound_connected", False)) and int(status.get("outbound_bytes", 0)) > 0,
         "outbound_connected_at": float(status.get("outbound_connected_at", 0) or 0),
         "outbound_last_data_at": float(status.get("outbound_last_data_at", 0) or 0),
         "outbound_reconnects": int(status.get("outbound_reconnects", 0)),
@@ -249,6 +255,7 @@ def adsbhub_status() -> dict:
         "local_inbound_port": int(os.getenv("ADSBHUB_LOCAL_INBOUND_PORT", "5002")),
         "inbound_clients": int(status.get("inbound_clients", 0)),
         "inbound_bytes": int(status.get("inbound_bytes", 0)),
+        "inbound_active": bool(status.get("inbound_connected", False)) and int(status.get("inbound_bytes", 0)) > 0,
         "inbound_connected_at": float(status.get("inbound_connected_at", 0) or 0),
         "inbound_last_data_at": float(status.get("inbound_last_data_at", 0) or 0),
         "inbound_reconnects": int(status.get("inbound_reconnects", 0)),
@@ -624,6 +631,7 @@ def status_payload() -> dict:
         "portals": portals,
         "weather": weather,
         "map_style": map_style(),
+        "dashboard_theme": dashboard_theme(),
         "airband": airband_status(),
         "adsbhub": adsbhub_status(),
         "flight_data": {
@@ -767,7 +775,7 @@ class Handler(BaseHTTPRequestHandler):
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"
         if relative in {"display", "tv"}:
             relative = "display.html"
-        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "detail-theme.css", "airband-theme.css", "operations-theme.css", "enrichment-theme.css", "airport.js", "operations.js", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
+        if relative not in {"index.html", "app.css", "app.js", "map.js", "map-theme.css", "weather-theme.css", "interaction-theme.css", "detail-theme.css", "airband-theme.css", "operations-theme.css", "enrichment-theme.css", "theme.css", "forced-dark.css", "theme-control.js", "adsbhub-health.js", "airport.js", "operations.js", "display.html", "display.css", "display-board.css", "display.js", "brand-icon.png"}:
             relative = "index.html"
         target = WEB_ROOT / relative
         try:

@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 2.2.1
+version: 2.3.0
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -80,6 +80,7 @@ options:
   OPEN_METEO: true
   AVIATION_WEATHER: true
   MAP_STYLE: "standard"
+  DASHBOARD_THEME: "auto"
   HOME_AIRPORT: "LICC"
   FLIGHTAWARE_ENRICHMENT: false
   FLIGHTAWARE_AEROAPI_KEY: ""
@@ -141,6 +142,7 @@ schema:
   OPEN_METEO: bool
   AVIATION_WEATHER: bool
   MAP_STYLE: list(standard|humanitarian|topographic|dark|satellite)
+  DASHBOARD_THEME: list(auto|light|dark)
   HOME_AIRPORT: str
   FLIGHTAWARE_ENRICHMENT: bool
   FLIGHTAWARE_AEROAPI_KEY: password?

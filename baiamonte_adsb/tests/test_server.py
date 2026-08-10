@@ -19,10 +19,22 @@ class DashboardTests(unittest.TestCase):
         web = Path(__file__).parents[1] / "dashboard" / "web"
         html = (web / "index.html").read_text()
         theme = (web / "theme.css").read_text()
-        self.assertIn('href="theme.css?v=210"', html)
+        self.assertIn('id="automatic-theme"', html)
+        self.assertIn('id="forced-dark-theme"', html)
+        self.assertIn('src="theme-control.js?v=230"', html)
         self.assertIn('media="(prefers-color-scheme: dark)"', html)
         self.assertIn("@media(prefers-color-scheme:dark)", theme)
         self.assertIn("color-scheme:light dark", theme)
+        self.assertIn("color-scheme:dark", (web / "forced-dark.css").read_text())
+        self.assertIn("applyDashboardTheme", (web / "theme-control.js").read_text())
+
+    def test_dashboard_theme_setting_supports_auto_light_and_dark(self):
+        for theme in ("auto", "light", "dark"):
+            os.environ["DASHBOARD_THEME"] = theme
+            self.assertEqual(dashboard.dashboard_theme(), theme)
+        os.environ["DASHBOARD_THEME"] = "invalid"
+        self.assertEqual(dashboard.dashboard_theme(), "auto")
+        os.environ.pop("DASHBOARD_THEME", None)
 
     def test_tv_layout_uses_fullscreen_map_and_nearest_aircraft_rail(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
@@ -238,6 +250,30 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("INBOUND SBS", html)
         self.assertIn("renderADSBHub", script)
         self.assertIn("api/adsbhub-public-ip", script)
+        self.assertIn('src="adsbhub-health.js?v=230"', html)
+        self.assertIn("Both flowing", (web / "adsbhub-health.js").read_text())
+
+    def test_adsbhub_status_distinguishes_connected_from_data_flowing(self):
+        old_file = dashboard.ADSBHUB_STATUS_FILE
+        with tempfile.TemporaryDirectory() as tmp:
+            status_file = Path(tmp) / "adsbhub.json"
+            status_file.write_text(json.dumps({
+                "outbound_connected": True,
+                "inbound_connected": True,
+                "outbound_bytes": 2048,
+                "inbound_bytes": 4096,
+            }))
+            dashboard.ADSBHUB_STATUS_FILE = status_file
+            os.environ["SERVICE_ENABLE_ADSBHUB"] = "true"
+            os.environ["ADSBHUB_INBOUND_ENABLED"] = "true"
+            try:
+                status = dashboard.adsbhub_status()
+                self.assertTrue(status["outbound_active"])
+                self.assertTrue(status["inbound_active"])
+            finally:
+                dashboard.ADSBHUB_STATUS_FILE = old_file
+                os.environ.pop("SERVICE_ENABLE_ADSBHUB", None)
+                os.environ.pop("ADSBHUB_INBOUND_ENABLED", None)
 
     def test_adsbhub_public_ip_check_reports_manual_mismatch_without_credentials(self):
         class Response:
