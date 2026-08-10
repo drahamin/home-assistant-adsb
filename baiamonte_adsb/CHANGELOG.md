@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.1
+
+- Keeps ADSBHub outbound port `5001` and inbound port `5002` sessions open through quiet traffic periods instead of treating an idle socket as a failure.
+- Enables TCP keepalive on both ADSBHub directions so dead connections are detected and reconnected without closing healthy sessions.
+- Requires ADSBHub's exact dynamic-IP challenge response before reporting the public-address update as successful.
+- Adds separate inbound/outbound errors, byte counters, connection times, data times, and reconnect counters to the safe status response.
+- Shows **Both connected** only when every enabled ADSBHub direction is actually online.
+
 ## 2.2.0
 
 - Adds a reliable ADSBHub Client-mode raw upload to `data.adsbhub.org:5001`.

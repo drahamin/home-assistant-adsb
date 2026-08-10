@@ -231,6 +231,10 @@ def adsbhub_status() -> dict:
         "outbound_host": os.getenv("ADSBHUB_OUTBOUND_HOST", "data.adsbhub.org"),
         "outbound_port": int(os.getenv("ADSBHUB_OUTBOUND_PORT", "5001")),
         "outbound_bytes": int(status.get("outbound_bytes", 0)),
+        "outbound_connected_at": float(status.get("outbound_connected_at", 0) or 0),
+        "outbound_last_data_at": float(status.get("outbound_last_data_at", 0) or 0),
+        "outbound_reconnects": int(status.get("outbound_reconnects", 0)),
+        "outbound_error": str(status.get("outbound_error", "")),
         "inbound_enabled": enabled("ADSBHUB_INBOUND_ENABLED", False),
         "inbound_connected": bool(status.get("inbound_connected", False)),
         "inbound_host": os.getenv("ADSBHUB_INBOUND_HOST", "data.adsbhub.org"),
@@ -238,10 +242,14 @@ def adsbhub_status() -> dict:
         "local_inbound_port": int(os.getenv("ADSBHUB_LOCAL_INBOUND_PORT", "5002")),
         "inbound_clients": int(status.get("inbound_clients", 0)),
         "inbound_bytes": int(status.get("inbound_bytes", 0)),
+        "inbound_connected_at": float(status.get("inbound_connected_at", 0) or 0),
+        "inbound_last_data_at": float(status.get("inbound_last_data_at", 0) or 0),
+        "inbound_reconnects": int(status.get("inbound_reconnects", 0)),
+        "inbound_error": str(status.get("inbound_error", "")),
         "dynamic_update_enabled": enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True),
         "dynamic_update_ok": bool(status.get("dynamic_update_ok", False)),
         "last_update": float(status.get("last_update", 0) or 0),
-        "last_error": str(status.get("last_error", "")),
+        "public_address_error": str(status.get("public_address_error", "")),
     }
 
 

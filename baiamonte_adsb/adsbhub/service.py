@@ -28,8 +28,16 @@ STATUS: dict[str, object] = {
     "outbound_bytes": 0,
     "inbound_bytes": 0,
     "inbound_clients": 0,
-    "last_error": "",
+    "outbound_error": "",
+    "inbound_error": "",
+    "public_address_error": "",
     "last_update": 0,
+    "outbound_connected_at": 0,
+    "inbound_connected_at": 0,
+    "outbound_last_data_at": 0,
+    "inbound_last_data_at": 0,
+    "outbound_reconnects": 0,
+    "inbound_reconnects": 0,
 }
 
 
@@ -104,21 +112,37 @@ def update_dynamic_ip(ckey: str, ipv4: str, ipv6: str) -> bool:
     digest = hashlib.md5((ckey + challenge[:-1]).encode()).hexdigest() + challenge[-1]
     query = urlencode({"sessid": digest, "myip": ipv4, "myip6": ipv6})
     response = fetch_text(f"https://www.adsbhub.org/updateip.php?{query}")
-    return "error" not in response.lower() and "fail" not in response.lower()
+    return response.strip() == digest
+
+
+def configure_stream_socket(stream: socket.socket) -> None:
+    """Keep an ADSBHub stream open through quiet traffic periods and detect dead peers."""
+    stream.settimeout(None)
+    stream.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    for option, value in (
+        (getattr(socket, "TCP_KEEPIDLE", None), 60),
+        (getattr(socket, "TCP_KEEPINTVL", None), 20),
+        (getattr(socket, "TCP_KEEPCNT", None), 3),
+    ):
+        if option is not None:
+            try:
+                stream.setsockopt(socket.IPPROTO_TCP, option, value)
+            except OSError:
+                pass
 
 
 def address_worker() -> None:
     while not STOP.is_set():
         try:
             ipv4, ipv6 = public_addresses()
-            values: dict[str, object] = {"public_ipv4": ipv4, "public_ipv6": ipv6, "last_error": ""}
+            values: dict[str, object] = {"public_ipv4": ipv4, "public_ipv6": ipv6, "public_address_error": ""}
             ckey = os.getenv("ADSBHUB_CKEY", "").strip()
             if enabled("ADSBHUB_DYNAMIC_IP_UPDATE", True) and ckey and (ipv4 or ipv6):
                 values["dynamic_update_ok"] = update_dynamic_ip(ckey, ipv4, ipv6)
                 values["last_update"] = time.time()
             set_status(**values)
         except (OSError, ValueError) as error:
-            set_status(dynamic_update_ok=False, last_error=f"Public address update: {error}")
+            set_status(dynamic_update_ok=False, public_address_error=str(error))
         STOP.wait(max(60, integer("ADSBHUB_IP_UPDATE_INTERVAL", 300)))
 
 
@@ -133,19 +157,22 @@ def outbound_worker() -> None:
             continue
         try:
             with socket.create_connection((source_host, source_port), timeout=15) as source, socket.create_connection((remote_host, remote_port), timeout=15) as remote:
-                source.settimeout(20)
-                remote.settimeout(20)
-                set_status(outbound_connected=True, last_error="")
+                configure_stream_socket(source)
+                configure_stream_socket(remote)
+                set_status(outbound_connected=True, outbound_connected_at=time.time(), outbound_error="")
                 while not STOP.is_set():
                     chunk = source.recv(65536)
                     if not chunk:
                         break
                     remote.sendall(chunk)
                     add_bytes("outbound_bytes", len(chunk))
+                    set_status(outbound_last_data_at=time.time())
         except OSError as error:
-            set_status(last_error=f"Outbound feed: {error}")
+            set_status(outbound_error=str(error))
         finally:
-            set_status(outbound_connected=False)
+            with LOCK:
+                STATUS["outbound_connected"] = False
+                STATUS["outbound_reconnects"] = int(STATUS.get("outbound_reconnects", 0)) + 1
         STOP.wait(5)
 
 
@@ -201,21 +228,24 @@ def inbound_worker() -> None:
                 continue
             try:
                 with socket.create_connection((remote_host, remote_port), timeout=15) as remote:
-                    remote.settimeout(30)
-                    set_status(inbound_connected=True, last_error="")
+                    configure_stream_socket(remote)
+                    set_status(inbound_connected=True, inbound_connected_at=time.time(), inbound_error="")
                     while not STOP.is_set():
                         chunk = remote.recv(65536)
                         if not chunk:
                             break
                         add_bytes("inbound_bytes", len(chunk))
+                        set_status(inbound_last_data_at=time.time())
                         broadcast(chunk)
             except OSError as error:
-                set_status(last_error=f"Inbound feed: {error}")
+                set_status(inbound_error=str(error))
             finally:
-                set_status(inbound_connected=False)
+                with LOCK:
+                    STATUS["inbound_connected"] = False
+                    STATUS["inbound_reconnects"] = int(STATUS.get("inbound_reconnects", 0)) + 1
             STOP.wait(5)
     except OSError as error:
-        set_status(last_error=f"Local inbound port: {error}")
+        set_status(inbound_error=f"Local port {local_port}: {error}")
     finally:
         if listener:
             listener.close()
