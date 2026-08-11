@@ -231,6 +231,11 @@
       });
     }
 
+    resetView() {
+      this.manualCenter = null;
+      this.manualZoom = null;
+    }
+
     chooseZoom(center, points, width, height) {
       const positions = [center, ...points].filter(usablePoint);
       if (positions.length < 2) return 10;

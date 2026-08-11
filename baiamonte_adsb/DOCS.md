@@ -71,6 +71,8 @@ Enable **Show Rahamin Miami receiver traffic** and enter the Miami appliance's p
 
 Version 2.5.1 adds **Sicily** and **Miami** buttons directly on the overview and TV maps. Each view is centered and scaled independently so the transatlantic distance cannot push aircraft off-screen. The TV map explicitly requests the configured Miami display feed; no proxied record is connected to an outbound feeder. When a selected site has no positioned aircraft, the map temporarily shows the other active site instead of presenting a blank map.
 
+Version 2.5.2 reserves map capacity for physical-receiver targets before ADSBHub fills the configured display limit. Switching the site button also clears the old site's manual pan and zoom, then fits all positioned targets for the newly selected receiver.
+
 Inbound ADSBHub aircraft are filtered for display using **ADSBHub Sicily display radius** (500 km by default). The separate ADSBHub TCP relay remains complete and unchanged, but only nearby targets are placed into the Sicily dashboard/TV aircraft collection.
 
 Use **ADSBHub public IP detection → auto** for a changing external address. Choose `manual` and enter the fixed address only when required. **Check public IP now** in Watch Area asks ADSBHub's own address service what it currently sees and warns when that differs from the manual value.

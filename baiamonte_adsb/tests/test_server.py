@@ -106,11 +106,13 @@ class DashboardTests(unittest.TestCase):
         focus = (web / "site-focus.js").read_text()
         for html_name in ("index.html", "display.html"):
             html = (web / html_name).read_text()
-            self.assertIn("site-focus.js?v=251", html)
+            self.assertIn("site-focus.js?v=252", html)
             self.assertIn("site-focus.css?v=251", html)
         self.assertIn("data-site=\"sicily\"", focus)
         self.assertIn("data-site=\"miami\"", focus)
         self.assertIn("Rahamin ADS-B · Miami", focus)
+        self.assertIn("resetMapView", focus)
+        self.assertIn("resetView", (web / "map.js").read_text())
 
     def test_dashboard_has_ingress_vhf_player_and_back_navigation(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
@@ -254,6 +256,7 @@ class DashboardTests(unittest.TestCase):
             "site": "Rahamin ADS-B · Miami Airspace",
             "aircraft": [
                 {"hex": "a00001", "flight": "MIA1", "data_source": "Local receiver"},
+                {"hex": "a00003", "flight": "MIA2", "data_source": "Local receiver + ADSBHub"},
                 {"hex": "a00002", "flight": "HUB1", "data_source": "ADSBHub"},
             ],
         }
@@ -266,7 +269,7 @@ class DashboardTests(unittest.TestCase):
             proxy = dashboard.miami_proxy_status()
         try:
             self.assertTrue(proxy["online"])
-            self.assertEqual([item["hex"] for item in proxy["aircraft"]], ["a00001"])
+            self.assertEqual([item["hex"] for item in proxy["aircraft"]], ["a00001", "a00003"])
             self.assertEqual(proxy["aircraft"][0]["source"], "Rahamin Miami proxy")
         finally:
             os.environ.pop("MIAMI_PROXY_ENABLED", None)
@@ -288,7 +291,7 @@ class DashboardTests(unittest.TestCase):
                 "deduplicated_target_count": 0, "last_success": time.time(),
                 "source_age": 0, "error": "",
             }
-            hub = {"inbound_targets": [{"hex": "def456", "flight": "HUB-DUP", "source": "ADSBHub"}]}
+            hub = {"inbound_targets": [{"hex": "def456", "flight": "HUB-DUP", "lat": 25.86, "lon": -80.19, "source": "ADSBHub"}]}
             try:
                 with patch.object(dashboard, "miami_proxy_status", return_value=miami), patch.object(dashboard, "adsbhub_status", return_value=hub):
                     payload = dashboard.status_payload()
@@ -296,10 +299,49 @@ class DashboardTests(unittest.TestCase):
                 self.assertEqual(set(by_hex), {"abc123", "def456"})
                 self.assertEqual(by_hex["abc123"]["source"], "Local receiver")
                 self.assertEqual(by_hex["def456"]["source"], "Rahamin Miami proxy")
+                self.assertEqual(by_hex["def456"]["lat"], 25.86)
                 self.assertEqual(payload["counts"]["miami"], 2)
                 self.assertEqual(payload["miami_proxy"]["deduplicated_target_count"], 1)
+                self.assertEqual(payload["miami_proxy"]["adsbhub_enriched_target_count"], 1)
             finally:
                 dashboard.AIRCRAFT_FILES = old_files
+
+    def test_miami_proxy_targets_are_reserved_when_adsbhub_fills_display_limit(self):
+        old_files = dashboard.AIRCRAFT_FILES
+        old_status = dashboard.ADSBHUB_STATUS_FILE
+        with tempfile.TemporaryDirectory() as tmp:
+            aircraft_file = Path(tmp) / "aircraft.json"
+            status_file = Path(tmp) / "adsbhub.json"
+            aircraft_file.write_text(json.dumps({"aircraft": []}))
+            status_file.write_text(json.dumps({"inbound_targets": [
+                {"hex": f"h{index:05d}", "lat": 37.8 + (index % 10) / 100, "lon": 14.9, "source": "ADSBHub"}
+                for index in range(150)
+            ]}))
+            dashboard.AIRCRAFT_FILES = (aircraft_file,)
+            dashboard.ADSBHUB_STATUS_FILE = status_file
+            os.environ["ADSBHUB_INBOUND_ENABLED"] = "true"
+            os.environ["ADSBHUB_DISPLAY_TARGETS"] = "true"
+            os.environ["ADSBHUB_DISPLAY_LIMIT"] = "100"
+            os.environ["HTML_SITE_LAT"] = "37.847"
+            os.environ["HTML_SITE_LON"] = "14.925"
+            miami = {
+                "enabled": True, "configured": True, "online": True,
+                "aircraft": [{"hex": "miami1", "flight": "MIA1", "lat": 25.86, "lon": -80.19, "source": "Rahamin Miami proxy"}],
+                "target_count": 1, "displayed_target_count": 0, "deduplicated_target_count": 0,
+                "last_success": time.time(), "source_age": 0, "error": "",
+            }
+            try:
+                with patch.object(dashboard, "miami_proxy_status", return_value=miami):
+                    payload = dashboard.status_payload()
+                self.assertEqual(len(payload["aircraft"]), 100)
+                self.assertIn("miami1", {item["hex"] for item in payload["aircraft"]})
+                self.assertEqual(payload["miami_proxy"]["displayed_target_count"], 1)
+                self.assertEqual(payload["miami_proxy"]["display_truncated"], 0)
+            finally:
+                dashboard.AIRCRAFT_FILES = old_files
+                dashboard.ADSBHUB_STATUS_FILE = old_status
+                for key in ("ADSBHUB_INBOUND_ENABLED", "ADSBHUB_DISPLAY_TARGETS", "ADSBHUB_DISPLAY_LIMIT", "HTML_SITE_LAT", "HTML_SITE_LON"):
+                    os.environ.pop(key, None)
 
     def test_last_valid_aircraft_snapshot_survives_partial_decoder_write(self):
         old_files = dashboard.AIRCRAFT_FILES

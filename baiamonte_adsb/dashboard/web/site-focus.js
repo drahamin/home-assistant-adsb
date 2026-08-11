@@ -32,13 +32,17 @@
     return controls;
   }
   function updateControls(controls,focus){Array.prototype.forEach.call(controls.querySelectorAll('button'),function(button){button.classList.toggle('active',button.getAttribute('data-site')===focus)})}
+  function resetMapView(){if(typeof geoMap!=='undefined'&&geoMap&&typeof geoMap.resetView==='function')geoMap.resetView()}
 
   var overview=document.querySelector('#radar-map');
   if(overview&&typeof renderMap==='function'){
-    var overviewControls=addControls(overview,function(){if(typeof mapAircraft!=='undefined')renderMap(mapAircraft,mapLocation,mapWeather)});
+    var overviewControls=addControls(overview,function(){resetMapView();if(typeof mapAircraft!=='undefined')renderMap(mapAircraft,mapLocation,mapWeather)});
     var originalRenderMap=renderMap;
+    var lastOverviewFocus='';
     renderMap=function(aircraft,location,weather){
       var focus=effectiveFocus(aircraft||[]),selected=selectedAircraft(aircraft||[],focus);
+      if(lastOverviewFocus&&lastOverviewFocus!==focus)resetMapView();
+      lastOverviewFocus=focus;
       originalRenderMap(selected,focus==='miami'?centerOf(selected,location):location,weather);
       updateControls(overviewControls,focus);
       var label=overview.querySelector('.estate-map-marker b');
@@ -49,11 +53,14 @@
   var tvMap=document.querySelector('#map');
   if(tvMap&&typeof render==='function'){
     var latestTvData=null;
-    var tvControls=addControls(tvMap,function(){if(latestTvData)render(latestTvData)});
+    var tvControls=addControls(tvMap,function(){resetMapView();if(latestTvData)render(latestTvData)});
     var originalRender=render;
+    var lastTvFocus='';
     render=function(data){
       latestTvData=data;
       var focus=effectiveFocus(data.aircraft||[]),selected=selectedAircraft(data.aircraft||[],focus);
+      if(lastTvFocus&&lastTvFocus!==focus)resetMapView();
+      lastTvFocus=focus;
       var copy=Object.assign({},data,{aircraft:selected,nearest_aircraft:selected.slice(0,10)});
       if(focus==='miami')copy.location=centerOf(selected,data.location||{});
       originalRender(copy);
