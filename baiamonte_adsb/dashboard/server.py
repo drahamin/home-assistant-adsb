@@ -362,7 +362,7 @@ def miami_proxy_status() -> dict:
                         continue
                     source = str(item.get("data_source", item.get("source", ""))).strip().lower()
                     # ADSBHub and other network data from Miami must never be proxied back.
-                    if source != "local receiver":
+                    if not source.startswith("local receiver"):
                         continue
                     target = dict(item)
                     target["source"] = "Rahamin Miami proxy"
@@ -703,24 +703,32 @@ def status_payload(include_miami: bool = True) -> dict:
     hub_addresses = {str(item.get("hex", "")).strip().lower() for item in hub_received}
     hub_added = 0
     hub_enriched = 0
+    miami_hub_enriched = 0
     try:
         hub_radius_km = min(2000, max(50, int(os.getenv("ADSBHUB_DISPLAY_RADIUS_KM", "500"))))
     except ValueError:
         hub_radius_km = 500
     for raw_target in hub_received:
         target = clean_aircraft(raw_target, site_lat, site_lon)
-        if isinstance(target.get("distance_km"), (int, float)) and target["distance_km"] > hub_radius_km:
-            continue
         address = target["hex"].lower()
         existing = records_by_address.get(address)
+        if existing is not None and existing.get("source") == "Rahamin Miami proxy":
+            contributed = False
+            for field in ("lat", "lon", "altitude", "speed", "track", "squawk", "flight"):
+                if existing.get(field) in {None, "", "Unidentified"} and target.get(field) not in {None, "", "Unidentified"}:
+                    existing[field] = target[field]
+                    contributed = True
+            if contributed:
+                if all(isinstance(value, (int, float)) for value in (existing["lat"], existing["lon"], site_lat, site_lon)):
+                    existing["distance_km"] = round(distance_km(site_lat, site_lon, existing["lat"], existing["lon"]), 2)
+                miami_hub_enriched += 1
+            continue
+        if isinstance(target.get("distance_km"), (int, float)) and target["distance_km"] > hub_radius_km:
+            continue
         if existing is None:
             records.append(target)
             records_by_address[address] = target
             hub_added += 1
-            continue
-        # A Miami-local target is already authoritative for this display. ADSBHub's
-        # duplicate stays isolated and is neither merged nor sent anywhere.
-        if existing.get("source") == "Rahamin Miami proxy":
             continue
         contributed = False
         for field in ("lat", "lon", "altitude", "speed", "track", "squawk", "flight"):
@@ -782,7 +790,20 @@ def status_payload(include_miami: bool = True) -> dict:
         display_limit = min(5000, max(100, int(os.getenv("ADSBHUB_DISPLAY_LIMIT", "1000"))))
     except ValueError:
         display_limit = 1000
-    displayed_records = records[:display_limit]
+    # Reserve space for both physical receivers before filling the remaining
+    # display capacity with ADSBHub. Miami is geographically far from Sicily
+    # and must not disappear merely because distance sorting places it last.
+    receiver_records = [item for item in records if item.get("source") != "ADSBHub"]
+    network_records = [item for item in records if item.get("source") == "ADSBHub"]
+    displayed_records = receiver_records[:display_limit]
+    if len(displayed_records) < display_limit:
+        displayed_records.extend(network_records[:display_limit - len(displayed_records)])
+    displayed_records.sort(key=lambda item: (
+        item["distance_km"] is None,
+        item["distance_km"] if item["distance_km"] is not None else math.inf,
+        item["seen"] is None,
+        item["seen"] if item["seen"] is not None else math.inf,
+    ))
     positioned = sum(item["lat"] is not None and item["lon"] is not None for item in displayed_records)
     hub["displayed_target_count"] = sum(item["hex"].lower() in hub_addresses for item in displayed_records)
     hub["positioned_target_count"] = sum(item["hex"].lower() in hub_addresses and item["lat"] is not None and item["lon"] is not None for item in displayed_records)
@@ -791,6 +812,8 @@ def status_payload(include_miami: bool = True) -> dict:
     hub["display_truncated"] = max(0, len(records) - len(displayed_records))
     miami["displayed_target_count"] = sum(item["hex"].lower() in miami_addresses for item in displayed_records)
     miami["deduplicated_target_count"] = miami_deduplicated
+    miami["adsbhub_enriched_target_count"] = miami_hub_enriched
+    miami["display_truncated"] = max(0, len(miami_addresses) - miami["displayed_target_count"])
     return {
         "generated_at": now,
         "site": os.getenv("HTML_SITE_NAME", "Tenuta Baiamonte Airspace"),

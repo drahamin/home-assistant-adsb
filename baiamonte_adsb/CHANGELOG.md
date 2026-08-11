@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.2
+
+- Reserve display capacity for every Sicily and Miami receiver target before filling remaining slots with ADSBHub aircraft.
+- Accept Miami records that are locally received and display-enriched by ADSBHub while continuing to reject network-only Miami targets.
+- Fill missing Miami receiver positions from a matching ADSBHub ICAO record for display only; never add an ADSBHub-only Miami contact.
+- Reset manual pan and zoom whenever the overview or TV switches between Sicily and Miami, preventing aircraft from remaining off-screen.
+- Report explicitly if any Miami targets are truncated and refresh the cached map scripts.
+
 ## 2.5.1
 
 - Fix aircraft visibility on the overview and TV maps by separating Sicily and Miami map focus.
