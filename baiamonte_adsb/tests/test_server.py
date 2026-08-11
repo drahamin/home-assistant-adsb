@@ -99,6 +99,18 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("if(refreshRunning){refreshQueued=true;return}", script)
         self.assertIn("if(!document.hidden)refresh()", script)
         self.assertIn("visibilitychange", script)
+        self.assertIn("api/aircraft?include_miami=1", script)
+
+    def test_overview_and_tv_have_sicily_miami_map_focus(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        focus = (web / "site-focus.js").read_text()
+        for html_name in ("index.html", "display.html"):
+            html = (web / html_name).read_text()
+            self.assertIn("site-focus.js?v=251", html)
+            self.assertIn("site-focus.css?v=251", html)
+        self.assertIn("data-site=\"sicily\"", focus)
+        self.assertIn("data-site=\"miami\"", focus)
+        self.assertIn("Rahamin ADS-B · Miami", focus)
 
     def test_dashboard_has_ingress_vhf_player_and_back_navigation(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
@@ -203,6 +215,38 @@ class DashboardTests(unittest.TestCase):
                 dashboard.ADSBHUB_STATUS_FILE = old_status
                 os.environ.pop("ADSBHUB_INBOUND_ENABLED", None)
                 os.environ.pop("ADSBHUB_DISPLAY_TARGETS", None)
+
+    def test_adsbhub_map_targets_are_limited_to_sicily_radius(self):
+        old_files = dashboard.AIRCRAFT_FILES
+        old_status = dashboard.ADSBHUB_STATUS_FILE
+        with tempfile.TemporaryDirectory() as tmp:
+            aircraft_file = Path(tmp) / "aircraft.json"
+            status_file = Path(tmp) / "adsbhub.json"
+            aircraft_file.write_text(json.dumps({"aircraft": []}))
+            status_file.write_text(json.dumps({"inbound_targets": [
+                {"hex": "near01", "lat": 37.9, "lon": 15.0, "source": "ADSBHub"},
+                {"hex": "far001", "lat": 25.8, "lon": -80.2, "source": "ADSBHub"},
+            ]}))
+            dashboard.AIRCRAFT_FILES = (aircraft_file,)
+            dashboard.ADSBHUB_STATUS_FILE = status_file
+            os.environ["ADSBHUB_INBOUND_ENABLED"] = "true"
+            os.environ["ADSBHUB_DISPLAY_TARGETS"] = "true"
+            os.environ["ADSBHUB_DISPLAY_RADIUS_KM"] = "500"
+            os.environ["HTML_SITE_LAT"] = "37.847"
+            os.environ["HTML_SITE_LON"] = "14.925"
+            try:
+                payload = dashboard.status_payload()
+                self.assertEqual([item["hex"] for item in payload["aircraft"]], ["near01"])
+                self.assertEqual(payload["counts"]["adsbhub"], 2)
+                self.assertEqual(payload["adsbhub"]["display_radius_km"], 500)
+            finally:
+                dashboard.AIRCRAFT_FILES = old_files
+                dashboard.ADSBHUB_STATUS_FILE = old_status
+                os.environ.pop("ADSBHUB_INBOUND_ENABLED", None)
+                os.environ.pop("ADSBHUB_DISPLAY_TARGETS", None)
+                os.environ.pop("ADSBHUB_DISPLAY_RADIUS_KM", None)
+                os.environ.pop("HTML_SITE_LAT", None)
+                os.environ.pop("HTML_SITE_LON", None)
 
     def test_miami_proxy_accepts_only_receiver_local_aircraft(self):
         response = {

@@ -1,0 +1,3 @@
+.site-focus-controls{position:absolute;top:10px;left:10px;z-index:12;display:flex;overflow:hidden;border:1px solid rgba(212,175,55,.38);border-radius:9px;background:rgba(8,7,6,.86);box-shadow:0 6px 20px rgba(0,0,0,.32)}
+.site-focus-controls button{min-width:62px;padding:8px 11px;border:0;border-right:1px solid rgba(212,175,55,.22);background:transparent;color:#d8cec0;font:800 9px/1 system-ui,sans-serif;letter-spacing:.06em;cursor:pointer}
+.site-focus-controls button:last-child{border-right:0}.site-focus-controls button.active{background:#d4af37;color:#17130f}

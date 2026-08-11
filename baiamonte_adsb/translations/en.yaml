@@ -167,6 +167,9 @@ configuration:
   ADSBHUB_DISPLAY_LIMIT:
     name: ADSBHub display limit
     description: Maximum combined aircraft shown on the dashboard and TV maps. Increase carefully on slower displays.
+  ADSBHUB_DISPLAY_RADIUS_KM:
+    name: ADSBHub Sicily display radius
+    description: Show inbound ADSBHub aircraft only within this distance of the Baiamonte receiver. Imported targets remain display-only and are never retransmitted.
   ADSBHUB_INBOUND_HOST:
     name: ADSBHub download server
     description: ADSBHub source for the aggregated inbound stream.
@@ -189,8 +192,8 @@ configuration:
     name: Miami feed retention
     description: Seconds to retain the last valid Miami receiver snapshot during a brief VPN or appliance interruption.
   MIAMI_PROXY_SHOW_TV:
-    name: Show Miami aircraft on Sicily TV
-    description: Include remote Miami targets in the TV feed. Leave off to keep the TV map and nearest-aircraft list local to Sicily.
+    name: Legacy Miami TV inclusion
+    description: Compatibility switch for older TV pages. Version 2.5.1 and newer loads configured Miami receiver traffic for the Sicily/Miami map selector automatically.
   PIAWARE_FEEDER_DASH_ID:
     name: FlightAware feeder ID
     description: Unique feeder ID from your FlightAware account.

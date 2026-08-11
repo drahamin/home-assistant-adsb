@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.1
+
+- Fix aircraft visibility on the overview and TV maps by separating Sicily and Miami map focus.
+- Add persistent **Sicily** and **Miami** map buttons; automatically use the site that currently has positioned aircraft when the selected site is empty.
+- Request Miami receiver targets on the TV feed and frame them around the Miami aircraft positions.
+- Limit inbound ADSBHub display targets to a configurable radius around Sicily while keeping the complete inbound stream isolated and unmodified on its local relay.
+
 ## 2.5.0
 
 - Restore the configurable private Rahamin Miami aircraft connection without publishing its address.

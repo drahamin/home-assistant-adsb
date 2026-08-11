@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 2.5.0
+version: 2.5.1
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -103,6 +103,7 @@ options:
   ADSBHUB_DISPLAY_TARGETS: true
   ADSBHUB_TARGET_TTL: 300
   ADSBHUB_DISPLAY_LIMIT: 1000
+  ADSBHUB_DISPLAY_RADIUS_KM: 500
   ADSBHUB_INBOUND_HOST: "data.adsbhub.org"
   ADSBHUB_INBOUND_PORT: 5002
   ADSBHUB_LOCAL_INBOUND_PORT: 5002
@@ -218,6 +219,7 @@ schema:
   ADSBHUB_DISPLAY_TARGETS: bool
   ADSBHUB_TARGET_TTL: int(30,900)
   ADSBHUB_DISPLAY_LIMIT: int(100,5000)
+  ADSBHUB_DISPLAY_RADIUS_KM: int(50,2000)
   ADSBHUB_INBOUND_HOST: str
   ADSBHUB_INBOUND_PORT: port
   ADSBHUB_LOCAL_INBOUND_PORT: port
