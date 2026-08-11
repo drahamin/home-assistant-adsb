@@ -703,8 +703,14 @@ def status_payload(include_miami: bool = True) -> dict:
     hub_addresses = {str(item.get("hex", "")).strip().lower() for item in hub_received}
     hub_added = 0
     hub_enriched = 0
+    try:
+        hub_radius_km = min(2000, max(50, int(os.getenv("ADSBHUB_DISPLAY_RADIUS_KM", "500"))))
+    except ValueError:
+        hub_radius_km = 500
     for raw_target in hub_received:
         target = clean_aircraft(raw_target, site_lat, site_lon)
+        if isinstance(target.get("distance_km"), (int, float)) and target["distance_km"] > hub_radius_km:
+            continue
         address = target["hex"].lower()
         existing = records_by_address.get(address)
         if existing is None:
@@ -781,6 +787,7 @@ def status_payload(include_miami: bool = True) -> dict:
     hub["displayed_target_count"] = sum(item["hex"].lower() in hub_addresses for item in displayed_records)
     hub["positioned_target_count"] = sum(item["hex"].lower() in hub_addresses and item["lat"] is not None and item["lon"] is not None for item in displayed_records)
     hub["enriched_target_count"] = hub_enriched
+    hub["display_radius_km"] = hub_radius_km
     hub["display_truncated"] = max(0, len(records) - len(displayed_records))
     miami["displayed_target_count"] = sum(item["hex"].lower() in miami_addresses for item in displayed_records)
     miami["deduplicated_target_count"] = miami_deduplicated
@@ -808,9 +815,11 @@ def status_payload(include_miami: bool = True) -> dict:
     }
 
 
-def aircraft_feed() -> dict:
+def aircraft_feed(include_miami: bool | None = None) -> dict:
     """Return the deliberately small, credential-free feed used by wall displays."""
-    status = status_payload(include_miami=enabled("MIAMI_PROXY_SHOW_TV", False))
+    if include_miami is None:
+        include_miami = enabled("MIAMI_PROXY_SHOW_TV", False)
+    status = status_payload(include_miami=include_miami)
     nearest = [item for item in status["aircraft"] if item.get("distance_km") is not None][:10]
     return {
         "generated_at": status["generated_at"],
@@ -934,7 +943,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_bytes(body, "application/json")
             return
         if path.rstrip("/").endswith("/api/aircraft") or path == "/api/aircraft":
-            body = json.dumps(aircraft_feed(), separators=(",", ":")).encode()
+            include_miami = query.get("include_miami", [""])[0].lower() in {"1", "true", "yes"}
+            body = json.dumps(aircraft_feed(include_miami=include_miami or None), separators=(",", ":")).encode()
             self.send_bytes(body, "application/json")
             return
         relative = path.rsplit("/", 1)[-1] if path not in {"", "/"} else "index.html"

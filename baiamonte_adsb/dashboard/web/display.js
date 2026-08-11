@@ -90,7 +90,7 @@ function render(data){
 function refresh(){
   if(refreshRunning){refreshQueued=true;return}
   refreshRunning=true;
-  fetch('api/aircraft',{cache:'no-store'}).then(function(response){
+  fetch('api/aircraft?include_miami=1',{cache:'no-store'}).then(function(response){
     if(!response.ok)throw new Error(response.status);
     return response.json();
   }).then(render).catch(function(error){$('#feed-status').textContent='ADS-B feed unavailable';$('#empty').classList.add('show');console.error(error)}).then(function(){
