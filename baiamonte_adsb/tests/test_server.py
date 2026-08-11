@@ -5,7 +5,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 SERVER = Path(__file__).parents[1] / "dashboard" / "server.py"
@@ -203,6 +203,59 @@ class DashboardTests(unittest.TestCase):
                 dashboard.ADSBHUB_STATUS_FILE = old_status
                 os.environ.pop("ADSBHUB_INBOUND_ENABLED", None)
                 os.environ.pop("ADSBHUB_DISPLAY_TARGETS", None)
+
+    def test_miami_proxy_accepts_only_receiver_local_aircraft(self):
+        response = {
+            "generated_at": time.time(),
+            "site": "Rahamin ADS-B · Miami Airspace",
+            "aircraft": [
+                {"hex": "a00001", "flight": "MIA1", "data_source": "Local receiver"},
+                {"hex": "a00002", "flight": "HUB1", "data_source": "ADSBHub"},
+            ],
+        }
+        dashboard.MIAMI_PROXY_CACHE.update({"attempted_at": 0.0, "received_at": 0.0, "aircraft": [], "error": ""})
+        os.environ["MIAMI_PROXY_ENABLED"] = "true"
+        os.environ["MIAMI_PROXY_URL"] = "http://miami.test/api/aircraft"
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value.read.return_value = json.dumps(response).encode()
+        with patch.object(dashboard, "urlopen", return_value=mock_response):
+            proxy = dashboard.miami_proxy_status()
+        try:
+            self.assertTrue(proxy["online"])
+            self.assertEqual([item["hex"] for item in proxy["aircraft"]], ["a00001"])
+            self.assertEqual(proxy["aircraft"][0]["source"], "Rahamin Miami proxy")
+        finally:
+            os.environ.pop("MIAMI_PROXY_ENABLED", None)
+            os.environ.pop("MIAMI_PROXY_URL", None)
+
+    def test_miami_proxy_is_display_only_and_deduplicated_before_adsbhub(self):
+        old_files = dashboard.AIRCRAFT_FILES
+        with tempfile.TemporaryDirectory() as tmp:
+            aircraft_file = Path(tmp) / "aircraft.json"
+            aircraft_file.write_text(json.dumps({"aircraft": [{"hex": "abc123", "flight": "SICILY"}]}))
+            dashboard.AIRCRAFT_FILES = (aircraft_file,)
+            miami = {
+                "enabled": True, "configured": True, "online": True,
+                "aircraft": [
+                    {"hex": "abc123", "flight": "MIAMI-DUP", "source": "Rahamin Miami proxy"},
+                    {"hex": "def456", "flight": "MIAMI", "source": "Rahamin Miami proxy"},
+                ],
+                "target_count": 2, "displayed_target_count": 0,
+                "deduplicated_target_count": 0, "last_success": time.time(),
+                "source_age": 0, "error": "",
+            }
+            hub = {"inbound_targets": [{"hex": "def456", "flight": "HUB-DUP", "source": "ADSBHub"}]}
+            try:
+                with patch.object(dashboard, "miami_proxy_status", return_value=miami), patch.object(dashboard, "adsbhub_status", return_value=hub):
+                    payload = dashboard.status_payload()
+                by_hex = {item["hex"]: item for item in payload["aircraft"]}
+                self.assertEqual(set(by_hex), {"abc123", "def456"})
+                self.assertEqual(by_hex["abc123"]["source"], "Local receiver")
+                self.assertEqual(by_hex["def456"]["source"], "Rahamin Miami proxy")
+                self.assertEqual(payload["counts"]["miami"], 2)
+                self.assertEqual(payload["miami_proxy"]["deduplicated_target_count"], 1)
+            finally:
+                dashboard.AIRCRAFT_FILES = old_files
 
     def test_last_valid_aircraft_snapshot_survives_partial_decoder_write(self):
         old_files = dashboard.AIRCRAFT_FILES
