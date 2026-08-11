@@ -64,8 +64,9 @@ done < <(jq -j "${jq_filter}" "${options_file}")
 # Translate the friendly Home Assistant radio fields into the decoder options
 # understood by the upstream dump1090 image.
 radio_args="${DUMP1090_ADDITIONAL_ARGS:-}"
-if [[ "${RECEIVER_DEVICE_INDEX:-0}" =~ ^[A-Za-z0-9._:-]+$ ]]; then
-  radio_args="${radio_args} --device-index ${RECEIVER_DEVICE_INDEX}"
+receiver_selector="${RECEIVER_DEVICE_SERIAL:-${RECEIVER_DEVICE_INDEX:-0}}"
+if [[ "${receiver_selector}" =~ ^[A-Za-z0-9._:-]+$ ]]; then
+  radio_args="${radio_args} --device-index ${receiver_selector}"
 fi
 if [[ "${RECEIVER_GAIN:-auto}" == "auto" ]]; then
   radio_args="${radio_args} --gain -10"

@@ -14,6 +14,9 @@ configuration:
   RECEIVER_DEVICE_INDEX:
     name: ADS-B Radio Device
     description: RTL-SDR device index or serial identifier. Use 0 for the first receiver.
+  RECEIVER_DEVICE_SERIAL:
+    name: ADS-B radio serial
+    description: Recommended with multiple identical SDRs. Enter the unique RTL-SDR serial assigned to the 1090 MHz receiver; when set, it overrides the device index.
   RECEIVER_GAIN:
     name: ADS-B Radio Gain
     description: Use auto or enter a supported tuner gain in dB.
@@ -29,6 +32,18 @@ configuration:
   VHF_DEVICE:
     name: VHF radio device
     description: RTL-SDR device index for VHF. Keep this different from the ADS-B Radio Device; the default second receiver is 1.
+  VHF_DEVICE_SERIAL:
+    name: VHF radio serial
+    description: Recommended with multiple identical SDRs. Enter the unique RTL-SDR serial assigned to the VHF receiver; when set, it overrides the device index.
+  VHF_USB_RECOVERY:
+    name: Recover VHF radio after failure
+    description: Reset and re-enumerate only the selected VHF USB receiver when RTLSDR-Airband exits unexpectedly.
+  VHF_USB_RESET_ATTEMPTS:
+    name: VHF USB recovery attempts
+    description: Number of automatic USB resets attempted after failures before switching to slower restart-only recovery.
+  VHF_USB_RESET_ON_START:
+    name: Reset VHF USB radio on start
+    description: Manual recovery switch. Enable and restart the add-on to reset the selected VHF stick once at startup, then turn this option back off.
   VHF_PPM:
     name: VHF frequency correction
     description: Oscillator correction for the VHF receiver in parts per million.

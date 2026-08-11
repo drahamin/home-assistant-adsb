@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 2.3.5
+version: 2.4.0
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
@@ -52,11 +52,16 @@ options:
   SERVICE_ENABLE_FR24FEED: true
   SERVICE_ENABLE_HTTP: true
   RECEIVER_DEVICE_INDEX: "0"
+  RECEIVER_DEVICE_SERIAL: ""
   RECEIVER_GAIN: "auto"
   RECEIVER_PPM: 0
   RECEIVER_BIAS_TEE: false
   AIRBAND_ENABLED: false
   VHF_DEVICE: 1
+  VHF_DEVICE_SERIAL: ""
+  VHF_USB_RECOVERY: true
+  VHF_USB_RESET_ATTEMPTS: 2
+  VHF_USB_RESET_ON_START: false
   VHF_PPM: 0
   AIRBAND_GAIN: 28
   AIRBAND_SQUELCH: -28
@@ -118,11 +123,16 @@ schema:
   SERVICE_ENABLE_FR24FEED: bool
   SERVICE_ENABLE_HTTP: bool
   RECEIVER_DEVICE_INDEX: str
+  RECEIVER_DEVICE_SERIAL: str?
   RECEIVER_GAIN: str
   RECEIVER_PPM: int
   RECEIVER_BIAS_TEE: bool
   AIRBAND_ENABLED: bool
   VHF_DEVICE: int
+  VHF_DEVICE_SERIAL: str?
+  VHF_USB_RECOVERY: bool
+  VHF_USB_RESET_ATTEMPTS: int(0,5)
+  VHF_USB_RESET_ON_START: bool
   VHF_PPM: int
   AIRBAND_GAIN: float
   AIRBAND_SQUELCH: int

@@ -32,6 +32,7 @@ AIRCRAFT_FILES = (
 )
 GPS_LOCATION_FILE = Path(os.getenv("BAIAMONTE_GPS_JSON", "/run/baiamonte/gps.json"))
 ADSBHUB_STATUS_FILE = Path(os.getenv("ADSBHUB_STATUS_FILE", "/run/baiamonte/adsbhub.json"))
+VHF_RECOVERY_FILE = Path(os.getenv("VHF_RECOVERY_FILE", "/run/baiamonte/vhf-recovery.json"))
 RECEIVER_LOG = deque(maxlen=80)
 receiver_signature = None
 PORTALS = (
@@ -203,13 +204,27 @@ def airband_status() -> dict:
                 listeners = int(matching.get("listeners", 0) or 0)
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             pass
-    adsb_device = os.getenv("RECEIVER_DEVICE_INDEX", "0").strip()
-    vhf_device = os.getenv("VHF_DEVICE", "1").strip()
+    adsb_serial = os.getenv("RECEIVER_DEVICE_SERIAL", "").strip()
+    vhf_serial = os.getenv("VHF_DEVICE_SERIAL", "").strip()
+    adsb_device = adsb_serial or os.getenv("RECEIVER_DEVICE_INDEX", "0").strip()
+    vhf_device = vhf_serial or os.getenv("VHF_DEVICE", "1").strip()
+    recovery: dict[str, object] = {}
+    try:
+        loaded_recovery = json.loads(VHF_RECOVERY_FILE.read_text(encoding="utf-8"))
+        if isinstance(loaded_recovery, dict):
+            recovery = loaded_recovery
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
     return {
         "enabled": is_enabled,
         "ready": local_ready,
-        "device": vhf_device,
+        "device": f"Serial {vhf_serial}" if vhf_serial else f"Index {vhf_device}",
+        "device_serial": vhf_serial,
         "device_conflict": is_enabled and vhf_device == adsb_device,
+        "usb_recovery_enabled": enabled("VHF_USB_RECOVERY", True),
+        "usb_recovery_state": str(recovery.get("state", "idle")),
+        "usb_recovery_attempt": int(recovery.get("attempt", 0) or 0),
+        "usb_recovery_error": str(recovery.get("error", "")),
         "gain": os.getenv("AIRBAND_GAIN", "28"),
         "ppm": os.getenv("VHF_PPM", "0"),
         "squelch": os.getenv("AIRBAND_SQUELCH", "-28"),
@@ -647,7 +662,7 @@ def status_payload() -> dict:
         "messages": raw.get("messages", 0),
         "map_ready": tcp_ready(8080),
         "source": source,
-        "device": os.getenv("RECEIVER_DEVICE_INDEX", "0"),
+        "device": (f"Serial {os.getenv('RECEIVER_DEVICE_SERIAL', '').strip()}" if os.getenv("RECEIVER_DEVICE_SERIAL", "").strip() else f"Index {os.getenv('RECEIVER_DEVICE_INDEX', '0')}"),
         "gain": os.getenv("RECEIVER_GAIN", "auto"),
         "ppm": os.getenv("RECEIVER_PPM", "0"),
         "bias_tee": enabled("RECEIVER_BIAS_TEE", False),

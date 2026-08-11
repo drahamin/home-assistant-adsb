@@ -18,6 +18,10 @@ The receiver location defaults to the Home Assistant home latitude, longitude, a
 
 The receiver settings expose the RTL-SDR device index or serial, gain, oscillator correction in PPM, and optional bias tee. Leave gain on `auto`, PPM on `0`, and bias tee off unless the antenna hardware requires different values.
 
+When two identical RTL-SDR sticks are installed, give each stick a unique serial with `rtl_eeprom`, then enter those values under **ADS-B radio serial** and **VHF radio serial**. Serial selection overrides the legacy indexes and prevents USB discovery order from swapping the 1090 MHz and VHF receivers after a reboot. Factory-default duplicate serials are not stable identifiers and should be changed before enabling both roles.
+
+The optional VHF recovery control resets and re-enumerates only the selected VHF USB stick after RTLSDR-Airband exits unexpectedly. It tries twice by default, then uses slower restart-only recovery to avoid a reset loop. For a manual recovery, enable **Reset VHF USB radio on start**, restart the add-on once, and turn the option back off. USB reset support depends on the host exposing the receiver through the add-on's USB access; hubs without per-port switching perform a logical USB reset rather than removing electrical power.
+
 ## VHF airband audio
 
 Enable **VHF airband receiver** to use a second RTL-SDR for receive-only civil aviation audio. The default ADS-B device is `0` and the default VHF device is `1`. Keep these different: a single tuner cannot decode 1090 MHz ADS-B and scan 118–137 MHz voice channels simultaneously. The dashboard reports a device conflict when both roles match.

@@ -6,4 +6,4 @@ if [[ "${AIRBAND_ENABLED:-false}" != "true" ]]; then
 fi
 
 until [[ -s /etc/rtl_airband.conf ]] && nc -z 127.0.0.1 8000; do sleep 1; done
-exec rtl_airband -F -e -c /etc/rtl_airband.conf
+exec python3 /opt/baiamonte/airband/vhf_supervisor.py
