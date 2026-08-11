@@ -460,7 +460,7 @@ def valid_weather_tile_path(path: str) -> bool:
     return WEATHER_TILE_PATTERN.fullmatch(path) is not None
 
 
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=128)
 def fetch_map_tile(style: str, zoom: int, x: int, y: int) -> tuple[bytes, str]:
     """Fetch and cache an OSM tile for TV browsers that block cross-origin images."""
     request = Request(
@@ -496,7 +496,7 @@ def fetch_weather_metadata() -> bytes:
     return body
 
 
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=128)
 def fetch_weather_tile(suffix: str) -> bytes:
     request = Request(
         f"https://tilecache.rainviewer.com/{suffix}",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.5
+
+- Reduce ADSBHub reconnect pressure with a bounded backoff when port 5002 accepts a connection but provides no aggregated feed.
+- Reduce large status-file writes from every two seconds to every five seconds without slowing visible map updates.
+- Stop TV polling while the page is hidden and prevent overlapping aircraft refresh requests.
+- Halve the bounded in-memory map and weather tile caches to reduce long-running memory use.
+
 ## 2.3.4
 
 - Fix automatic public IPv4 detection after ADSBHub's legacy hostname began presenting an invalid TLS certificate.

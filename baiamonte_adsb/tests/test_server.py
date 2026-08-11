@@ -94,6 +94,12 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("adsbhub-target", tv_script)
         self.assertIn("displayed_target_count", health_script)
 
+    def test_tv_refresh_pauses_when_hidden_and_cannot_overlap(self):
+        script = (Path(__file__).parents[1] / "dashboard" / "web" / "display.js").read_text()
+        self.assertIn("if(refreshRunning){refreshQueued=true;return}", script)
+        self.assertIn("if(!document.hidden)refresh()", script)
+        self.assertIn("visibilitychange", script)
+
     def test_dashboard_has_ingress_vhf_player_and_back_navigation(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
         html = (web / "index.html").read_text()

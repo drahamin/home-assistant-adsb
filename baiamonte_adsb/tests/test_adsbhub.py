@@ -65,6 +65,12 @@ class ADSBHubTests(unittest.TestCase):
         stream.settimeout.assert_called_once_with(None)
         stream.setsockopt.assert_any_call(adsbhub.socket.SOL_SOCKET, adsbhub.socket.SO_KEEPALIVE, 1)
 
+    def test_inbound_access_failure_uses_bounded_backoff(self):
+        source = Path(adsbhub.__file__).read_text()
+        self.assertIn("retry_delay = min(60.0, max(10.0, retry_delay * 2))", source)
+        self.assertIn("STOP.wait(retry_delay)", source)
+        self.assertIn("while not STOP.wait(5):", source)
+
     def test_outbound_route_forwards_raw_port_30002_to_adsbhub_5001(self):
         source = self.Stream([b"*8d4ca12358c382d690c8ac2863a7;\n"])
         remote = self.Stream()
