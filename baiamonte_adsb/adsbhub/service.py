@@ -305,6 +305,7 @@ def inbound_worker() -> None:
     remote_port = integer("ADSBHUB_INBOUND_PORT", 5002)
     listener: socket.socket | None = None
     sbs_buffer = b""
+    retry_delay = 5.0
     try:
         listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -325,19 +326,24 @@ def inbound_worker() -> None:
                         if not chunk:
                             if session_bytes == 0:
                                 set_status(inbound_error="ADSBHub closed port 5002 without sending data; aggregated-feed access is not active for this account/IP")
+                                retry_delay = min(60.0, max(10.0, retry_delay * 2))
+                            else:
+                                retry_delay = 5.0
                             break
                         session_bytes += len(chunk)
+                        retry_delay = 5.0
                         add_bytes("inbound_bytes", len(chunk))
                         set_status(inbound_last_data_at=time.time(), inbound_error="")
                         sbs_buffer = ingest_sbs_chunk(sbs_buffer, chunk)
                         broadcast(chunk)
             except OSError as error:
                 set_status(inbound_error=str(error))
+                retry_delay = min(60.0, max(10.0, retry_delay * 2))
             finally:
                 with LOCK:
                     STATUS["inbound_connected"] = False
                     STATUS["inbound_reconnects"] = int(STATUS.get("inbound_reconnects", 0)) + 1
-            STOP.wait(5)
+            STOP.wait(retry_delay)
     except OSError as error:
         set_status(inbound_error=f"Local port {local_port}: {error}")
     finally:
@@ -359,7 +365,9 @@ def main() -> None:
     ]
     for worker in workers:
         worker.start()
-    while not STOP.wait(2):
+    # Keep the UI responsive without continuously rewriting a status document
+    # that may contain hundreds of retained ADSBHub aircraft.
+    while not STOP.wait(5):
         write_status()
     write_status()
 

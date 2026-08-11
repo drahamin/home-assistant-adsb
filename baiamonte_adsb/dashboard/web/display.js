@@ -5,6 +5,8 @@ const flagFor=code=>code&&code.length===2?code.split('').map(character=>String.f
 const geoMap=new BaiamonteMap($('#map'),{interactive:true});
 const weatherMap=new BaiamonteWeatherMap(geoMap);
 let latest=null;
+let refreshRunning=false;
+let refreshQueued=false;
 $('#map').addEventListener('baiamonte-map-change',function(){if(latest)render(latest)});
 
 function flightRow(item){
@@ -86,13 +88,19 @@ function render(data){
 }
 
 function refresh(){
+  if(refreshRunning){refreshQueued=true;return}
+  refreshRunning=true;
   fetch('api/aircraft',{cache:'no-store'}).then(function(response){
     if(!response.ok)throw new Error(response.status);
     return response.json();
-  }).then(render).catch(function(error){$('#feed-status').textContent='ADS-B feed unavailable';$('#empty').classList.add('show');console.error(error)});
+  }).then(render).catch(function(error){$('#feed-status').textContent='ADS-B feed unavailable';$('#empty').classList.add('show');console.error(error)}).then(function(){
+    refreshRunning=false;
+    if(refreshQueued&&!document.hidden){refreshQueued=false;refresh()}
+  });
 }
 
 let resizeTimer;
 addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>latest&&render(latest),150)});
 refresh();
-setInterval(refresh,5000);
+setInterval(function(){if(!document.hidden)refresh()},5000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden){if(latest)render(latest);refresh()}});
