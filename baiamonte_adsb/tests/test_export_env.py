@@ -28,6 +28,23 @@ class ExportEnvironmentTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "--device-index 1 --gain 38.6 --ppm -2|true|-b 1")
 
+    def test_adsb_serial_overrides_unstable_device_index(self):
+        options = {
+            "RECEIVER_DEVICE_INDEX": "0",
+            "RECEIVER_DEVICE_SERIAL": "BAIAMONTE-1090",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            options_file = Path(tmp) / "options.json"
+            options_file.write_text(json.dumps(options))
+            environment = os.environ.copy()
+            environment.pop("SUPERVISOR_TOKEN", None)
+            environment["BAIAMONTE_OPTIONS_FILE"] = str(options_file)
+            command = f'source "{EXPORT_SCRIPT}"; printf "%s" "$DUMP1090_ADDITIONAL_ARGS"'
+            result = subprocess.run(["bash", "-c", command], env=environment, capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--device-index BAIAMONTE-1090", result.stdout)
+        self.assertNotIn("--device-index 0", result.stdout)
+
     def test_options_are_exported_without_leading_newlines(self):
         options = {
             "SERVICE_ENABLE_PIAWARE": True,

@@ -393,6 +393,22 @@ class DashboardTests(unittest.TestCase):
             os.environ.pop("RECEIVER_DEVICE_INDEX", None)
             os.environ.pop("VHF_DEVICE", None)
 
+    def test_airband_status_detects_matching_radio_serials(self):
+        os.environ.update({
+            "AIRBAND_ENABLED": "true",
+            "RECEIVER_DEVICE_SERIAL": "DUPLICATE",
+            "VHF_DEVICE_SERIAL": "DUPLICATE",
+        })
+        try:
+            with patch.object(dashboard, "tcp_ready", return_value=False):
+                status = dashboard.airband_status()
+            self.assertTrue(status["device_conflict"])
+            self.assertEqual(status["device"], "Serial DUPLICATE")
+        finally:
+            os.environ.pop("AIRBAND_ENABLED", None)
+            os.environ.pop("RECEIVER_DEVICE_SERIAL", None)
+            os.environ.pop("VHF_DEVICE_SERIAL", None)
+
     def test_tv_feed_contains_aircraft_but_no_portal_configuration(self):
         old_files = dashboard.AIRCRAFT_FILES
         with tempfile.TemporaryDirectory() as tmp:

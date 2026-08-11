@@ -50,6 +50,7 @@ COPY adsbhub /opt/baiamonte/adsbhub
 COPY --from=airband-builder /opt/rtl-airband/bin/rtl_airband /usr/local/bin/rtl_airband
 COPY rootfs /
 RUN chmod +x /opt/baiamonte/airband/render_config.py \
+    /opt/baiamonte/airband/vhf_supervisor.py \
     /opt/baiamonte/adsbhub/service.py \
     /etc/s6-overlay/s6-rc.d/baiamonte-dashboard/run \
     /etc/s6-overlay/s6-rc.d/baiamonte-gps/run \

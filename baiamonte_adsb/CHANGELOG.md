@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.0
+
+- Add explicit ADS-B and VHF RTL-SDR serial selectors so two identical receivers retain stable, separate roles across reboots.
+- Add optional VHF failure recovery that resets only the selected USB receiver up to a configurable attempt limit.
+- Add a manual reset-on-start configuration switch for recovering a wedged VHF stick.
+- Show whether each radio is selected by stable serial or legacy index and detect cross-role serial conflicts.
+
 ## 2.3.5
 
 - Reduce ADSBHub reconnect pressure with a bounded backoff when port 5002 accepts a connection but provides no aggregated feed.

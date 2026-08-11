@@ -33,6 +33,12 @@ class AirbandConfigTests(unittest.TestCase):
         self.assertIn('"Catania Tower"', config)
         self.assertIn('server = "127.0.0.1"', config)
 
+    def test_vhf_serial_overrides_unstable_device_index(self):
+        os.environ["VHF_DEVICE_SERIAL"] = "BAIAMONTE-VHF"
+        config = renderer.render_airband("local-secret")
+        self.assertIn('serial = "BAIAMONTE-VHF"', config)
+        self.assertNotIn("index = 1", config)
+
     def test_airnav_output_is_added_without_changing_local_stream(self):
         os.environ.update({
             "AIRNAV_VHF_ENABLED": "true",
