@@ -9,6 +9,7 @@ import mimetypes
 import os
 import re
 import socket
+import threading
 import time
 from collections import deque
 from functools import lru_cache
@@ -88,6 +89,11 @@ last_aircraft_payload: dict | None = None
 last_aircraft_source: str | None = None
 last_aircraft_read_at = 0.0
 EXTERNAL_CACHE: dict[str, tuple[float, object]] = {}
+MIAMI_PROXY_LOCK = threading.Lock()
+MIAMI_PROXY_CACHE: dict[str, object] = {
+    "attempted_at": 0.0, "received_at": 0.0, "generated_at": 0.0,
+    "aircraft": [], "site": "Rahamin ADS-B · Miami Airspace", "error": "",
+}
 ENRICHMENT_CACHE_SECONDS = 3600
 AIRPORT_CACHE_SECONDS = 120
 
@@ -318,6 +324,71 @@ def fetch_json(key: str, url: str, seconds: int, headers: dict[str, str] | None 
         payload = json.loads(response.read().decode("utf-8"))
     EXTERNAL_CACHE[key] = (time.time(), payload)
     return payload
+
+
+def miami_proxy_status() -> dict:
+    """Fetch Miami's receiver-only display feed without importing it into dump1090."""
+    configured = enabled("MIAMI_PROXY_ENABLED", False)
+    url = os.getenv("MIAMI_PROXY_URL", "").strip()
+    result = {
+        "enabled": configured, "configured": configured and bool(url), "online": False,
+        "url": url, "site": "Rahamin ADS-B · Miami Airspace", "aircraft": [],
+        "target_count": 0, "displayed_target_count": 0, "deduplicated_target_count": 0,
+        "last_success": 0.0, "source_age": None, "error": "",
+    }
+    if not configured or not url:
+        return result
+    try:
+        refresh = min(300, max(5, int(os.getenv("MIAMI_PROXY_REFRESH", "15"))))
+    except ValueError:
+        refresh = 15
+    try:
+        stale_after = min(900, max(30, int(os.getenv("MIAMI_PROXY_STALE_AFTER", "120"))))
+    except ValueError:
+        stale_after = 120
+    now = time.time()
+    with MIAMI_PROXY_LOCK:
+        if now - float(MIAMI_PROXY_CACHE.get("attempted_at", 0) or 0) >= refresh:
+            MIAMI_PROXY_CACHE["attempted_at"] = now
+            try:
+                request = Request(url, headers={"User-Agent": "Tenuta-Baiamonte-ADS-B/2.5 Miami-display-proxy"})
+                with urlopen(request, timeout=4) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+                if not isinstance(payload, dict) or not isinstance(payload.get("aircraft"), list):
+                    raise ValueError("Miami endpoint did not return an aircraft feed")
+                local_aircraft = []
+                for item in payload["aircraft"]:
+                    if not isinstance(item, dict):
+                        continue
+                    source = str(item.get("data_source", item.get("source", ""))).strip().lower()
+                    # ADSBHub and other network data from Miami must never be proxied back.
+                    if source != "local receiver":
+                        continue
+                    target = dict(item)
+                    target["source"] = "Rahamin Miami proxy"
+                    local_aircraft.append(target)
+                MIAMI_PROXY_CACHE.update({
+                    "received_at": now,
+                    "generated_at": float(payload.get("generated_at", now) or now),
+                    "aircraft": local_aircraft,
+                    "site": str(payload.get("site") or "Rahamin ADS-B · Miami Airspace"),
+                    "error": "",
+                })
+            except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
+                MIAMI_PROXY_CACHE["error"] = str(error)
+        received_at = float(MIAMI_PROXY_CACHE.get("received_at", 0) or 0)
+        age = max(0.0, now - received_at) if received_at else None
+        aircraft = MIAMI_PROXY_CACHE.get("aircraft", []) if age is not None and age <= stale_after else []
+        result.update({
+            "online": bool(received_at and age is not None and age <= stale_after),
+            "site": str(MIAMI_PROXY_CACHE.get("site") or result["site"]),
+            "aircraft": list(aircraft) if isinstance(aircraft, list) else [],
+            "target_count": len(aircraft) if isinstance(aircraft, list) else 0,
+            "last_success": received_at,
+            "source_age": round(age, 1) if age is not None else None,
+            "error": str(MIAMI_PROXY_CACHE.get("error", "")),
+        })
+    return result
 
 
 def supplemental_weather(location: dict) -> dict:
@@ -596,7 +667,7 @@ def clean_aircraft(record: dict, reference_lat: float | None = None, reference_l
     return cleaned
 
 
-def status_payload() -> dict:
+def status_payload(include_miami: bool = True) -> dict:
     global receiver_signature
     raw, source = read_aircraft()
     location = current_location()
@@ -605,6 +676,28 @@ def status_payload() -> dict:
     records = [clean_aircraft(item, site_lat, site_lon) for item in raw.get("aircraft", []) if isinstance(item, dict)]
     local_count = len(records)
     records_by_address = {item["hex"].lower(): item for item in records if item["hex"]}
+    miami = miami_proxy_status() if include_miami else {
+        "enabled": enabled("MIAMI_PROXY_ENABLED", False),
+        "configured": bool(os.getenv("MIAMI_PROXY_URL", "").strip()),
+        "online": False, "aircraft": [], "target_count": 0,
+        "displayed_target_count": 0, "deduplicated_target_count": 0,
+        "last_success": 0.0, "source_age": None, "error": "",
+    }
+    miami_addresses = set()
+    miami_deduplicated = 0
+    for raw_target in miami.get("aircraft", []):
+        if not isinstance(raw_target, dict):
+            continue
+        target = clean_aircraft(raw_target, site_lat, site_lon)
+        address = target["hex"].lower()
+        if not address:
+            continue
+        miami_addresses.add(address)
+        if address in records_by_address:
+            miami_deduplicated += 1
+            continue
+        records.append(target)
+        records_by_address[address] = target
     hub = adsbhub_status()
     hub_received = [item for item in hub.get("inbound_targets", []) if isinstance(item, dict) and str(item.get("hex", "")).strip()]
     hub_addresses = {str(item.get("hex", "")).strip().lower() for item in hub_received}
@@ -618,6 +711,10 @@ def status_payload() -> dict:
             records.append(target)
             records_by_address[address] = target
             hub_added += 1
+            continue
+        # A Miami-local target is already authoritative for this display. ADSBHub's
+        # duplicate stays isolated and is neither merged nor sent anywhere.
+        if existing.get("source") == "Rahamin Miami proxy":
             continue
         contributed = False
         for field in ("lat", "lon", "altitude", "speed", "track", "squawk", "flight"):
@@ -685,13 +782,15 @@ def status_payload() -> dict:
     hub["positioned_target_count"] = sum(item["hex"].lower() in hub_addresses and item["lat"] is not None and item["lon"] is not None for item in displayed_records)
     hub["enriched_target_count"] = hub_enriched
     hub["display_truncated"] = max(0, len(records) - len(displayed_records))
+    miami["displayed_target_count"] = sum(item["hex"].lower() in miami_addresses for item in displayed_records)
+    miami["deduplicated_target_count"] = miami_deduplicated
     return {
         "generated_at": now,
         "site": os.getenv("HTML_SITE_NAME", "Tenuta Baiamonte Airspace"),
         "receiver": receiver_info,
         "receiver_log": list(RECEIVER_LOG),
         "location": location,
-        "counts": {"aircraft": len(displayed_records), "total_aircraft": len(records), "positioned": positioned, "local": local_count, "adsbhub": len(hub_received)},
+        "counts": {"aircraft": len(displayed_records), "total_aircraft": len(records), "positioned": positioned, "local": local_count, "miami": len(miami_addresses), "adsbhub": len(hub_received)},
         "aircraft": displayed_records,
         "portals": portals,
         "weather": weather,
@@ -699,6 +798,7 @@ def status_payload() -> dict:
         "dashboard_theme": dashboard_theme(),
         "airband": airband_status(),
         "adsbhub": {key: value for key, value in hub.items() if key != "inbound_targets"},
+        "miami_proxy": {key: value for key, value in miami.items() if key != "aircraft"},
         "flight_data": {
             "free_source": "ADSBDB + OpenSky",
             "flightaware_enabled": enabled("FLIGHTAWARE_ENRICHMENT", False),
@@ -710,7 +810,7 @@ def status_payload() -> dict:
 
 def aircraft_feed() -> dict:
     """Return the deliberately small, credential-free feed used by wall displays."""
-    status = status_payload()
+    status = status_payload(include_miami=enabled("MIAMI_PROXY_SHOW_TV", False))
     nearest = [item for item in status["aircraft"] if item.get("distance_km") is not None][:10]
     return {
         "generated_at": status["generated_at"],

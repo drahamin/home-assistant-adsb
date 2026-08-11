@@ -65,6 +65,12 @@ The Watch Area reports outbound, inbound, and dynamic-IP state independently. AD
 
 Both ADSBHub TCP sessions remain open during quiet traffic periods and use operating-system TCP keepalive to recover from a failed network path. **Both connected** means the raw upload and the optional aggregated download are simultaneously established. Each route shows its own error and byte count when troubleshooting.
 
+## Rahamin Miami private receiver proxy
+
+Enable **Show Rahamin Miami receiver traffic** and enter the Miami appliance's private `/api/aircraft` address in **Rahamin Miami aircraft feed**. Keep that address in Home Assistant configuration rather than committing it to GitHub. Only records explicitly marked **Local receiver** by the Miami appliance are accepted. Miami's ADSBHub and other network-fed targets are rejected before merging, and matching ICAO addresses are shown once. This connection is display-only: its targets never enter dump1090, ADSBHub outbound, or another feeder.
+
+The default keeps Miami targets out of `/tv` so the Sicily wall display remains centered on the estate. Enable **Show Miami aircraft on Sicily TV** only when the combined remote view is wanted.
+
 Use **ADSBHub public IP detection → auto** for a changing external address. Choose `manual` and enter the fixed address only when required. **Check public IP now** in Watch Area asks ADSBHub's own address service what it currently sees and warns when that differs from the manual value.
 
 ## Interfaces

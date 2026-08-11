@@ -176,6 +176,21 @@ configuration:
   ADSBHUB_LOCAL_INBOUND_PORT:
     name: Local ADSBHub inbound port
     description: Local TCP port where other devices can read the separate aggregated SBS feed.
+  MIAMI_PROXY_ENABLED:
+    name: Show Rahamin Miami receiver traffic
+    description: Add aircraft received directly by the private Miami ADS-B appliance to Live Traffic. Network-fed Miami targets are excluded.
+  MIAMI_PROXY_URL:
+    name: Rahamin Miami aircraft feed
+    description: Private HTTP address of the Miami /api/aircraft endpoint. Keep this address in Home Assistant configuration, not in GitHub.
+  MIAMI_PROXY_REFRESH:
+    name: Miami feed refresh interval
+    description: Seconds between private Miami aircraft feed checks.
+  MIAMI_PROXY_STALE_AFTER:
+    name: Miami feed retention
+    description: Seconds to retain the last valid Miami receiver snapshot during a brief VPN or appliance interruption.
+  MIAMI_PROXY_SHOW_TV:
+    name: Show Miami aircraft on Sicily TV
+    description: Include remote Miami targets in the TV feed. Leave off to keep the TV map and nearest-aircraft list local to Sicily.
   PIAWARE_FEEDER_DASH_ID:
     name: FlightAware feeder ID
     description: Unique feeder ID from your FlightAware account.

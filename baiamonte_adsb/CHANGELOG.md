@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.0
+
+- Restore the configurable private Rahamin Miami aircraft connection without publishing its address.
+- Import only targets marked as received by Miami's local receiver; exclude Miami ADSBHub and other network-fed records.
+- Deduplicate Miami, Sicily, and ADSBHub display records by ICAO address while keeping every imported stream isolated from dump1090 and outbound feeders.
+- Add proxy health, source counts, short outage retention, and an optional TV-feed switch.
+
 ## 2.4.0
 
 - Add explicit ADS-B and VHF RTL-SDR serial selectors so two identical receivers retain stable, separate roles across reboots.
