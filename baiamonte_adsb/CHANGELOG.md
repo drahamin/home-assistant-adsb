@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.3
+
+- Add explicit **Start listening** and **Disconnect** controls for the VHF dashboard player.
+- Make native pause close the browser audio request instead of continuing to buffer the live stream.
+- Disconnect VHF audio when leaving the VHF page, backgrounding the display, closing the page, disabling VHF, or losing receiver readiness.
+- Disable proxy buffering, use smaller audio chunks, and force the server-side listener connection closed after a browser disconnect.
+
 ## 2.5.2
 
 - Reserve display capacity for every Sicily and Miami receiver target before filling remaining slots with ADSBHub aircraft.
