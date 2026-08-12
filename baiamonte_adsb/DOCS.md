@@ -92,6 +92,8 @@ Internal port `8099` is published as host port `8998` by default for the estate 
 
 The TV feed contains aircraft observations only and never includes portal keys, feeder IDs, UUIDs, or sharecodes. Home Assistant ingress remains available for authenticated operators.
 
+The VHF page has separate **Start listening** and **Disconnect** buttons. Disconnect removes the media source and closes the live HTTP listener; native pause does the same. Audio is also disconnected automatically when leaving the VHF page or when the browser is backgrounded. To stop the SDR receiver and any optional AirNav upload—not just local listening—turn off **VHF airband receiver**, save, and restart the app.
+
 The geographic background uses OpenStreetMap tiles and therefore requires network access from the browser displaying the dashboard. Aircraft data remains local to the app.
 
 ## Live weather radar

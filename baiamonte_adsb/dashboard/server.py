@@ -919,14 +919,18 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "audio/mpeg")
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Accel-Buffering", "no")
+            self.send_header("Connection", "close")
             self.end_headers()
             try:
                 with stream:
-                    while chunk := stream.read(16384):
+                    while chunk := stream.read(4096):
                         self.wfile.write(chunk)
                         self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError, TimeoutError, OSError):
                 pass
+            finally:
+                self.close_connection = True
             return
         if path.rstrip("/") == "/api/weather-maps":
             try:

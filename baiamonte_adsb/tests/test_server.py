@@ -120,8 +120,24 @@ class DashboardTests(unittest.TestCase):
         script = (web / "app.js").read_text()
         self.assertIn('id="airband"', html)
         self.assertIn('src="api/airband-stream"', html)
+        self.assertIn('id="vhf-start"', html)
+        self.assertIn('id="vhf-stop"', html)
+        self.assertIn('src="vhf-player.js?v=253"', html)
         self.assertIn('data-go="overview"', html)
         self.assertIn("renderAirband(data.airband)", script)
+
+    def test_vhf_player_disconnects_the_http_stream(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        script = (web / "vhf-player.js").read_text()
+        server = SERVER.read_text()
+        self.assertIn("source.removeAttribute('src')", script)
+        self.assertIn("player.load()", script)
+        self.assertIn("visibilitychange", script)
+        self.assertIn("pagehide", script)
+        self.assertIn("Paused · stream closed", script)
+        self.assertIn('self.send_header("Connection", "close")', server)
+        self.assertIn("stream.read(4096)", server)
+        self.assertIn("self.close_connection = True", server)
 
     def test_dashboard_includes_sicily_weather_airport_and_enrichment_views(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"

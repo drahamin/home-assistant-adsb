@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="site-focus.css?v=251">
   <link rel="stylesheet" href="detail-theme.css?v=141">
   <link rel="stylesheet" href="airband-theme.css?v=200">
+  <link rel="stylesheet" href="vhf-player.css?v=253">
   <link rel="stylesheet" href="operations-theme.css?v=200">
   <link rel="stylesheet" href="enrichment-theme.css?v=200">
   <link rel="stylesheet" href="adsbhub-targets.css?v=231">
@@ -65,7 +66,7 @@
       <section class="page" id="airband">
         <div class="section-head"><div><button class="back-button" data-go="overview">← Back to overview</button><p>RECEIVE-ONLY AVIATION AUDIO</p><h2>VHF airband</h2><span>Listen to the second RTL-SDR scanning configured civil aviation channels.</span></div><span class="badge neutral" id="vhf-badge">Disabled</span></div>
         <div class="airband-grid">
-          <article class="airband-player"><div class="airband-player-copy"><span class="radio-kicker"><i id="vhf-light"></i> TENUTA BAIAMONTE RADIO</span><h3 id="vhf-title">VHF receiver disabled</h3><p id="vhf-detail">Enable the VHF airband receiver in the add-on configuration to begin.</p><audio id="vhf-player" controls preload="none"><source src="api/airband-stream" type="audio/mpeg"></audio><small>Receive-only audio · Civil aviation band · Secrets remain inside Home Assistant</small></div><div class="radio-dial"><svg><use href="#i-radio"/></svg><b>VHF</b><span>118–137 MHz</span></div></article>
+          <article class="airband-player"><div class="airband-player-copy"><span class="radio-kicker"><i id="vhf-light"></i> TENUTA BAIAMONTE RADIO</span><h3 id="vhf-title">VHF receiver disabled</h3><p id="vhf-detail">Enable the VHF airband receiver in the add-on configuration to begin.</p><audio id="vhf-player" controls preload="none"><source src="api/airband-stream" type="audio/mpeg"></audio><div class="vhf-listener-controls"><button id="vhf-start" type="button">Start listening</button><button id="vhf-stop" type="button" disabled>Disconnect</button><span id="vhf-listener-state">Disconnected</span></div><small>Receive-only audio · Civil aviation band · Secrets remain inside Home Assistant</small></div><div class="radio-dial"><svg><use href="#i-radio"/></svg><b>VHF</b><span>118–137 MHz</span></div></article>
           <article class="panel"><p>RADIO PROFILE</p><h3>Second receiver</h3><div id="vhf-profile" class="radio-profile"></div><div class="vhf-warning hidden" id="vhf-conflict">The ADS-B and VHF roles use the same radio. Assign VHF to a different RTL-SDR device.</div></article>
         </div>
         <article class="panel channel-panel"><div class="panel-head"><div><p>SCAN LIST</p><h3>Catania and eastern Sicily aviation channels</h3></div><span class="live-pill"><i></i>RECEIVE ONLY</span></div><div id="vhf-channels" class="vhf-channels"></div></article>
@@ -103,5 +104,6 @@
   <script src="adsbhub-health.js?v=233"></script>
   <script src="adsbhub-access.js?v=234"></script>
   <script src="site-focus.js?v=252"></script>
+  <script src="vhf-player.js?v=253"></script>
 </body>
 </html>
