@@ -1,5 +1,5 @@
 name: "Baiamonte ADS-B"
-version: 2.5.4
+version: 2.5.5
 slug: "baiamonte_adsb"
 description: "Tenuta Baiamonte airspace watch and multi-portal ADS-B feeder"
 url: "https://github.com/drahamin/home-assistant-adsb"
