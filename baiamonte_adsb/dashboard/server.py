@@ -628,6 +628,16 @@ def distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return radius_km * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+def _optional_number(value):
+    if value in {None, ""}:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
 def clean_aircraft(record: dict, reference_lat: float | None = None, reference_lon: float | None = None) -> dict:
     altitude = record.get("alt_baro", record.get("altitude"))
     if altitude == "ground":
@@ -643,12 +653,12 @@ def clean_aircraft(record: dict, reference_lat: float | None = None, reference_l
     cleaned = {
         "hex": str(record.get("hex", "")).strip(),
         "flight": flight,
-        "lat": record.get("lat"),
-        "lon": record.get("lon"),
-        "altitude": altitude,
-        "speed": record.get("gs", record.get("speed")),
-        "track": record.get("track"),
-        "seen": record.get("seen"),
+        "lat": _optional_number(record.get("lat")),
+        "lon": _optional_number(record.get("lon")),
+        "altitude": _optional_number(altitude),
+        "speed": _optional_number(record.get("gs", record.get("speed"))),
+        "track": _optional_number(record.get("track")),
+        "seen": _optional_number(record.get("seen")),
         "messages": record.get("messages", 0),
         "category": record.get("category", ""),
         "registration": registration,

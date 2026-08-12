@@ -201,6 +201,18 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(item["source"], "Local receiver")
         self.assertIsNone(item["distance_km"])
 
+    def test_clean_aircraft_normalizes_string_coordinates_for_maps(self):
+        item = dashboard.clean_aircraft({
+            "hex": "abc123", "lat": "37.9001", "lon": "15.1012",
+            "alt_baro": "12500", "gs": "242.5", "track": "183.2", "seen": "1.7",
+        })
+        self.assertEqual(item["lat"], 37.9001)
+        self.assertEqual(item["lon"], 15.1012)
+        self.assertEqual(item["altitude"], 12500.0)
+        self.assertEqual(item["speed"], 242.5)
+        self.assertEqual(item["track"], 183.2)
+        self.assertEqual(item["seen"], 1.7)
+
     def test_adsbhub_targets_are_merged_for_display_but_local_targets_win(self):
         old_files = dashboard.AIRCRAFT_FILES
         old_status = dashboard.ADSBHUB_STATUS_FILE

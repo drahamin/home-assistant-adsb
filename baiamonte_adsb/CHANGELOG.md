@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.6
+
+- Normalize numeric coordinates supplied as strings so valid ADSBHub and proxy aircraft are no longer omitted from dashboard and TV maps.
+
 ## 2.5.5
 
 - Allows TV aircraft targets to be reduced to 30% for close, uncluttered estate views.
