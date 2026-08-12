@@ -6,7 +6,7 @@ const tvParams=new URLSearchParams(location.search);
 const zoomValue=Number(tvParams.get('map_zoom'));
 const targetValue=Number(tvParams.get('target_size'));
 const requestedZoom=Number.isFinite(zoomValue)?Math.max(-6,Math.min(20,zoomValue)):0;
-const requestedTargetScale=Number.isFinite(targetValue)?Math.max(50,Math.min(180,targetValue))/100:1;
+const requestedTargetScale=Number.isFinite(targetValue)?Math.max(30,Math.min(180,targetValue))/100:1;
 window.BaiamonteNativeMapControls=true;
 document.documentElement.style.setProperty('--tv-target-scale',String(requestedTargetScale));
 const geoMap=new BaiamonteMap($('#map'),{interactive:true,initialZoomDelta:requestedZoom});
