@@ -92,6 +92,7 @@
     constructor(container, options = {}) {
       this.container = container;
       this.interactive = Boolean(options.interactive);
+      this.initialZoomDelta = Number.isFinite(Number(options.initialZoomDelta)) ? Math.max(-6, Math.min(20, Number(options.initialZoomDelta))) : 0;
       this.manualCenter = null;
       this.manualZoom = null;
       this.currentView = null;
@@ -256,7 +257,7 @@
       const height = this.container.clientHeight || 500;
       const safeCenter = usablePoint(center) ? center : {lat: 37.847, lon: 14.925};
       const automaticZoom = this.chooseZoom(safeCenter, points, width, height);
-      const zoom = this.manualZoom === null ? automaticZoom : this.manualZoom;
+      const zoom = this.manualZoom === null ? Math.max(5, Math.min(18, automaticZoom + this.initialZoomDelta)) : this.manualZoom;
       const viewCenter = this.manualCenter === null ? safeCenter : this.manualCenter;
       const centerWorld = worldPoint(viewCenter.lat, viewCenter.lon, zoom);
       const left = centerWorld.x - width / 2;
