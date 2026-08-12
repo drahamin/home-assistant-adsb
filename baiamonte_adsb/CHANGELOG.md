@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.4
+
+- Applies Vineyard Operations TV zoom and aircraft-size settings natively when the ADS-B map opens.
+- Supports very close estate views without depending on delayed page-injection retries.
+
 ## 2.5.3
 
 - Add explicit **Start listening** and **Disconnect** controls for the VHF dashboard player.
