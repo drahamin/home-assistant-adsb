@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.5
+
+- Allows TV aircraft targets to be reduced to 30% for close, uncluttered estate views.
+
 ## 2.5.4
 
 - Applies Vineyard Operations TV zoom and aircraft-size settings natively when the ADS-B map opens.
