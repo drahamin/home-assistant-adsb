@@ -88,6 +88,8 @@ Use **ADSBHub public IP detection → auto** for a changing external address. Ch
 - Optional port `8000`: direct local VHF Icecast audio; leave unpublished when using the ingress player.
 - Optional port `5002`: separate ADSBHub aggregated SBS output for trusted local consumers.
 
+Use **TV map aircraft size** in the add-on configuration to set aircraft targets on `/tv` and `/display` from 30% to 180%. The default is 100% for a normal browser; 120–140% is a useful starting point for a television viewed from across the room. A display can temporarily override the saved value with `?target_size=125` without changing the other screens.
+
 Internal port `8099` is published as host port `8998` by default for the estate TV display. To use another port, open the app's **Network** section, change the host-side value beside **TV display host port**, save, and restart the app. The container and Home Assistant ingress continue to use internal port `8099`; this is expected.
 
 The TV feed contains aircraft observations only and never includes portal keys, feeder IDs, UUIDs, or sharecodes. Home Assistant ingress remains available for authenticated operators.

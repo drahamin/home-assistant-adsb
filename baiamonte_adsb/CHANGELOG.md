@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.5.7
+
+- Adds a Home Assistant **TV map aircraft size** setting from 30% to 180% for `/tv` and `/display`.
+- Fixes direct browser sessions without a `target_size` query so they use the configured 100% default instead of accidentally shrinking targets to 30%.
+- Keeps `?target_size=` available as a temporary per-screen override.
+
 ## 2.5.6
 
 - Normalize numeric coordinates supplied as strings so valid ADSBHub and proxy aircraft are no longer omitted from dashboard and TV maps.
