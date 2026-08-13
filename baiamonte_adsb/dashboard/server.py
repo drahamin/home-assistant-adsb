@@ -133,6 +133,14 @@ def map_style() -> str:
     return style if style in MAP_TILE_PROVIDERS else "standard"
 
 
+def tv_map_target_size() -> int:
+    """Return the configured TV aircraft target percentage in a safe range."""
+    try:
+        return max(30, min(180, int(os.getenv("TV_MAP_TARGET_SIZE", "100"))))
+    except ValueError:
+        return 100
+
+
 def dashboard_theme() -> str:
     theme = os.getenv("DASHBOARD_THEME", "auto").strip().lower()
     return theme if theme in {"auto", "light", "dark"} else "auto"
@@ -864,6 +872,7 @@ def aircraft_feed(include_miami: bool | None = None) -> dict:
         "nearest_aircraft": nearest,
         "weather": weather_config("tv"),
         "map_style": map_style(),
+        "target_size": tv_map_target_size(),
     }
 
 

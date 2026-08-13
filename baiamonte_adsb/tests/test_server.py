@@ -57,6 +57,15 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('id="tv-shell"', html)
         self.assertIn('id="fleet"', html)
         self.assertIn("nearest_aircraft", script)
+        self.assertIn("tvParams.has('target_size')", script)
+        self.assertIn("data.target_size", script)
+
+    def test_tv_map_target_size_is_configurable_and_clamped(self):
+        for value, expected in (("125", 125), ("20", 30), ("200", 180), ("invalid", 100)):
+            os.environ["TV_MAP_TARGET_SIZE"] = value
+            self.assertEqual(dashboard.tv_map_target_size(), expected)
+        os.environ.pop("TV_MAP_TARGET_SIZE", None)
+        self.assertEqual(dashboard.tv_map_target_size(), 100)
 
     def test_tv_map_is_bright_and_aircraft_rows_are_compact(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
@@ -589,6 +598,7 @@ class DashboardTests(unittest.TestCase):
                 self.assertEqual(feed["aircraft"][0]["flight"], "RYR43ET")
                 self.assertEqual(feed["nearest_aircraft"][0]["flight"], "RYR43ET")
                 self.assertIn("weather", feed)
+                self.assertEqual(feed["target_size"], 100)
                 self.assertNotIn("portals", feed)
                 self.assertNotIn("receiver", feed)
             finally:

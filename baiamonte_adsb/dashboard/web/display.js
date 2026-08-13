@@ -4,11 +4,10 @@ const fmt=value=>value===null||value===undefined?'—':Math.round(value).toLocal
 const flagFor=code=>code&&code.length===2?code.split('').map(character=>String.fromCodePoint(127397+character.charCodeAt())).join(''):'✈';
 const tvParams=new URLSearchParams(location.search);
 const zoomValue=Number(tvParams.get('map_zoom'));
-const targetValue=Number(tvParams.get('target_size'));
 const requestedZoom=Number.isFinite(zoomValue)?Math.max(-6,Math.min(20,zoomValue)):0;
-const requestedTargetScale=Number.isFinite(targetValue)?Math.max(30,Math.min(180,targetValue))/100:1;
+const targetValue=tvParams.has('target_size')?Number(tvParams.get('target_size')):null;
+const requestedTargetScale=Number.isFinite(targetValue)?Math.max(30,Math.min(180,targetValue))/100:null;
 window.BaiamonteNativeMapControls=true;
-document.documentElement.style.setProperty('--tv-target-scale',String(requestedTargetScale));
 const geoMap=new BaiamonteMap($('#map'),{interactive:true,initialZoomDelta:requestedZoom});
 const weatherMap=new BaiamonteWeatherMap(geoMap);
 let latest=null;
@@ -73,6 +72,9 @@ function addAircraftMarker(view,item){
 
 function render(data){
   latest=data;
+  const configuredTargetSize=Number(data.target_size);
+  const targetScale=requestedTargetScale===null?(Number.isFinite(configuredTargetSize)?Math.max(30,Math.min(180,configuredTargetSize))/100:1):requestedTargetScale;
+  document.documentElement.style.setProperty('--tv-target-scale',String(targetScale));
   const all=data.aircraft||[];
   const positioned=all.filter(item=>typeof item.lat==='number'&&typeof item.lon==='number');
   const contacts=data.nearest_aircraft&&data.nearest_aircraft.length?data.nearest_aircraft:all;
