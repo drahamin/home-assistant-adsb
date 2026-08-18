@@ -104,11 +104,17 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("displayed_target_count", health_script)
 
     def test_tv_refresh_pauses_when_hidden_and_cannot_overlap(self):
-        script = (Path(__file__).parents[1] / "dashboard" / "web" / "display.js").read_text()
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        script = (web / "display.js").read_text()
+        html = (web / "display.html").read_text()
+        map_theme = (web / "map-theme.css").read_text()
         self.assertIn("if(refreshRunning){refreshQueued=true;return}", script)
         self.assertIn("if(!document.hidden)refresh()", script)
         self.assertIn("visibilitychange", script)
         self.assertIn("api/aircraft?include_miami=1", script)
+        self.assertIn("width!==renderedMapWidth||height!==renderedMapHeight", script)
+        self.assertIn('id="empty" class="show"', html)
+        self.assertIn("top:0;right:0;bottom:0;left:0;inset:0;width:100%;height:100%", map_theme)
 
     def test_overview_and_tv_have_sicily_miami_map_focus(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"

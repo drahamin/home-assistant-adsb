@@ -13,6 +13,8 @@ const weatherMap=new BaiamonteWeatherMap(geoMap);
 let latest=null;
 let refreshRunning=false;
 let refreshQueued=false;
+let renderedMapWidth=0;
+let renderedMapHeight=0;
 $('#map').addEventListener('baiamonte-map-change',function(){if(latest)render(latest)});
 
 function flightRow(item){
@@ -82,6 +84,8 @@ function render(data){
   const first=positioned.length?positioned[0]:null;
   const center={lat:typeof location.lat==='number'?location.lat:(first&&typeof first.lat==='number'?first.lat:37.847),lon:typeof location.lon==='number'?location.lon:(first&&typeof first.lon==='number'?first.lon:14.925)};
   const view=geoMap.render(center,positioned,data.map_style||'standard');
+  renderedMapWidth=$('#map').clientWidth;
+  renderedMapHeight=$('#map').clientHeight;
   $$('.plane,.estate-marker').forEach(node=>node.remove());
   addEstateMarker(view,center);
   positioned.forEach(item=>addAircraftMarker(view,item));
@@ -112,4 +116,8 @@ let resizeTimer;
 addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>latest&&render(latest),150)});
 refresh();
 setInterval(function(){if(!document.hidden)refresh()},5000);
+setInterval(function(){
+  const map=$('#map'),width=map.clientWidth,height=map.clientHeight;
+  if(latest&&width>100&&height>100&&(width!==renderedMapWidth||height!==renderedMapHeight))render(latest);
+},1000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden){if(latest)render(latest);refresh()}});
