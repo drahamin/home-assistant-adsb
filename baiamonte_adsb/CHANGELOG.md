@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.5.8
+
+- Restore the ADS-B basemap on older Samsung/Tizen TV browsers with explicit full-size tile-layer bounds.
+- Redraw the map when a TV rotation reveals or resizes the ADS-B frame, without adding extra receiver polling.
+- Show a clear connecting state while the first aircraft map is loading.
+
 ## 2.5.7
 
 - Adds a Home Assistant **TV map aircraft size** setting from 30% to 180% for `/tv` and `/display`.
