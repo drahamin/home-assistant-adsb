@@ -67,6 +67,14 @@ class DashboardTests(unittest.TestCase):
         os.environ.pop("TV_MAP_TARGET_SIZE", None)
         self.assertEqual(dashboard.tv_map_target_size(), 100)
 
+    def test_ui_refresh_intervals_are_configurable_and_clamped(self):
+        for surface, variable, fallback in (("dashboard", "DASHBOARD_REFRESH_SECONDS", 15), ("tv", "TV_REFRESH_SECONDS", 10)):
+            for value, expected in (("20", 20), ("2", 5), ("90", 60), ("invalid", fallback)):
+                os.environ[variable] = value
+                self.assertEqual(dashboard.ui_refresh_seconds(surface), expected)
+            os.environ.pop(variable, None)
+            self.assertEqual(dashboard.ui_refresh_seconds(surface), fallback)
+
     def test_tv_map_is_bright_and_aircraft_rows_are_compact(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
         html = (web / "display.html").read_text()
@@ -109,12 +117,39 @@ class DashboardTests(unittest.TestCase):
         html = (web / "display.html").read_text()
         map_theme = (web / "map-theme.css").read_text()
         self.assertIn("if(refreshRunning){refreshQueued=true;return}", script)
-        self.assertIn("if(!document.hidden)refresh()", script)
+        self.assertIn("scheduleRefresh()", script)
+        self.assertIn("latest&&latest.refresh_seconds", script)
+        self.assertNotIn("setInterval(function(){if(!document.hidden)refresh()", script)
         self.assertIn("visibilitychange", script)
         self.assertIn("api/aircraft?include_miami=1", script)
         self.assertIn("width!==renderedMapWidth||height!==renderedMapHeight", script)
         self.assertIn('id="empty" class="show"', html)
         self.assertIn("top:0;right:0;bottom:0;left:0;inset:0;width:100%;height:100%", map_theme)
+
+    def test_maps_reuse_tiles_and_tv_reuses_aircraft_nodes(self):
+        web = Path(__file__).parents[1] / "dashboard" / "web"
+        map_script = (web / "map.js").read_text()
+        tv_script = (web / "display.js").read_text()
+        dashboard_script = (web / "app.js").read_text()
+        self.assertIn("this.renderedTiles[key]", map_script)
+        self.assertNotIn("this.tiles.innerHTML = ''", map_script)
+        self.assertIn("planeNodes[key]", tv_script)
+        self.assertIn("flightListSignature", tv_script)
+        self.assertNotIn("$$('.plane,.estate-marker').forEach", tv_script)
+        self.assertIn("renderAircraftPage", dashboard_script)
+        self.assertIn("classList.contains('active')", dashboard_script)
+
+    def test_cached_json_file_reuses_unchanged_parse_and_detects_updates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "status.json"
+            path.write_text('{"value":1}')
+            first = dashboard.cached_json_file(path)
+            second = dashboard.cached_json_file(path)
+            self.assertIs(first, second)
+            path.write_text('{"value":200}')
+            third = dashboard.cached_json_file(path)
+            self.assertEqual(third["value"], 200)
+            self.assertIsNot(first, third)
 
     def test_overview_and_tv_have_sicily_miami_map_focus(self):
         web = Path(__file__).parents[1] / "dashboard" / "web"
@@ -192,7 +227,7 @@ class DashboardTests(unittest.TestCase):
         dashboard_script = (web / "app.js").read_text()
         tv_script = (web / "display.js").read_text()
         self.assertLess(dashboard_script.index("map.appendChild(node)});weatherMap.render"), dashboard_script.index("$('#radar-map').addEventListener"))
-        self.assertLess(tv_script.index("positioned.forEach(item=>addAircraftMarker"), tv_script.index("weatherMap.render(view,data.weather)"))
+        self.assertLess(tv_script.index("positioned.forEach((item,index)=>"), tv_script.index("weatherMap.render(view,data.weather)"))
 
     def test_weather_tile_path_rejects_traversal(self):
         self.assertFalse(dashboard.valid_weather_tile_path("v2/radar/../../options.json"))
@@ -605,6 +640,7 @@ class DashboardTests(unittest.TestCase):
                 self.assertEqual(feed["nearest_aircraft"][0]["flight"], "RYR43ET")
                 self.assertIn("weather", feed)
                 self.assertEqual(feed["target_size"], 100)
+                self.assertEqual(feed["refresh_seconds"], 10)
                 self.assertNotIn("portals", feed)
                 self.assertNotIn("receiver", feed)
             finally:

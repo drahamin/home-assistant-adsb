@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.9
+
+- Reduces dashboard and TV CPU use by reusing unchanged map tiles, aircraft markers, and TV list rows instead of rebuilding them on every update.
+- Avoids reparsing unchanged aircraft, ADSBHub, GPS, and VHF status files while preserving immediate updates whenever their contents change.
+- Defers the potentially large Live Traffic card grid until that page is visible.
+- Adds configurable dashboard and TV refresh intervals, defaulting to 15 and 10 seconds; receiver decoding and all feeder streams remain full speed.
+
 ## 2.5.8
 
 - Restore the ADS-B basemap on older Samsung/Tizen TV browsers with explicit full-size tile-layer bounds.

@@ -88,6 +88,8 @@ AIRCRAFT_CACHE_SECONDS = 30
 last_aircraft_payload: dict | None = None
 last_aircraft_source: str | None = None
 last_aircraft_read_at = 0.0
+JSON_FILE_CACHE_LOCK = threading.Lock()
+JSON_FILE_CACHE: dict[str, tuple[tuple[int, int], object]] = {}
 EXTERNAL_CACHE: dict[str, tuple[float, object]] = {}
 MIAMI_PROXY_LOCK = threading.Lock()
 MIAMI_PROXY_CACHE: dict[str, object] = {
@@ -96,6 +98,21 @@ MIAMI_PROXY_CACHE: dict[str, object] = {
 }
 ENRICHMENT_CACHE_SECONDS = 3600
 AIRPORT_CACHE_SECONDS = 120
+
+
+def cached_json_file(path: Path) -> object:
+    """Parse a changing JSON file only when its size or nanosecond mtime changes."""
+    stat = path.stat()
+    signature = (stat.st_mtime_ns, stat.st_size)
+    cache_key = str(path)
+    with JSON_FILE_CACHE_LOCK:
+        cached = JSON_FILE_CACHE.get(cache_key)
+        if cached and cached[0] == signature:
+            return cached[1]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    with JSON_FILE_CACHE_LOCK:
+        JSON_FILE_CACHE[cache_key] = (signature, payload)
+    return payload
 
 
 def enabled(name: str, default: bool = False) -> bool:
@@ -141,6 +158,16 @@ def tv_map_target_size() -> int:
         return 100
 
 
+def ui_refresh_seconds(surface: str) -> int:
+    """Return a bounded UI polling interval; receiver and feeder rates are unaffected."""
+    variable = "TV_REFRESH_SECONDS" if surface == "tv" else "DASHBOARD_REFRESH_SECONDS"
+    fallback = 10 if surface == "tv" else 15
+    try:
+        return max(5, min(60, int(os.getenv(variable, str(fallback)))))
+    except ValueError:
+        return fallback
+
+
 def dashboard_theme() -> str:
     theme = os.getenv("DASHBOARD_THEME", "auto").strip().lower()
     return theme if theme in {"auto", "light", "dark"} else "auto"
@@ -156,7 +183,7 @@ def current_location() -> dict:
     """Prefer a recent USB GPS fix, then fall back to configured coordinates."""
     if enabled("GPS_USE_USB", True):
         try:
-            fix = json.loads(GPS_LOCATION_FILE.read_text(encoding="utf-8"))
+            fix = cached_json_file(GPS_LOCATION_FILE)
             latitude = float(fix["lat"])
             longitude = float(fix["lon"])
             timestamp = float(fix.get("timestamp", 0))
@@ -224,7 +251,7 @@ def airband_status() -> dict:
     vhf_device = vhf_serial or os.getenv("VHF_DEVICE", "1").strip()
     recovery: dict[str, object] = {}
     try:
-        loaded_recovery = json.loads(VHF_RECOVERY_FILE.read_text(encoding="utf-8"))
+        loaded_recovery = cached_json_file(VHF_RECOVERY_FILE)
         if isinstance(loaded_recovery, dict):
             recovery = loaded_recovery
     except (OSError, ValueError, json.JSONDecodeError):
@@ -255,7 +282,7 @@ def adsbhub_status() -> dict:
     """Return connection and public-address details without exposing the station key."""
     status: dict[str, object] = {}
     try:
-        loaded = json.loads(ADSBHUB_STATUS_FILE.read_text(encoding="utf-8"))
+        loaded = cached_json_file(ADSBHUB_STATUS_FILE)
         if isinstance(loaded, dict):
             status = loaded
     except (OSError, ValueError, json.JSONDecodeError):
@@ -607,7 +634,7 @@ def read_aircraft() -> tuple[dict, str | None]:
     global last_aircraft_payload, last_aircraft_source, last_aircraft_read_at
     for path in AIRCRAFT_FILES:
         try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload = cached_json_file(path)
             if isinstance(payload, dict) and isinstance(payload.get("aircraft", []), list):
                 last_aircraft_payload = payload
                 last_aircraft_source = str(path)
@@ -844,6 +871,7 @@ def status_payload(include_miami: bool = True) -> dict:
         "weather": weather,
         "map_style": map_style(),
         "dashboard_theme": dashboard_theme(),
+        "refresh_seconds": ui_refresh_seconds("dashboard"),
         "airband": airband_status(),
         "adsbhub": {key: value for key, value in hub.items() if key != "inbound_targets"},
         "miami_proxy": {key: value for key, value in miami.items() if key != "aircraft"},
@@ -873,6 +901,7 @@ def aircraft_feed(include_miami: bool | None = None) -> dict:
         "weather": weather_config("tv"),
         "map_style": map_style(),
         "target_size": tv_map_target_size(),
+        "refresh_seconds": ui_refresh_seconds("tv"),
     }
 
 
