@@ -13,8 +13,12 @@ const weatherMap=new BaiamonteWeatherMap(geoMap);
 let latest=null;
 let refreshRunning=false;
 let refreshQueued=false;
+let refreshTimer=null;
 let renderedMapWidth=0;
 let renderedMapHeight=0;
+let estateMarker=null;
+let planeNodes={};
+let flightListSignature='';
 $('#map').addEventListener('baiamonte-map-change',function(){if(latest)render(latest)});
 
 function flightRow(item){
@@ -49,27 +53,23 @@ function flightRow(item){
 
 function addEstateMarker(view,location){
   const point=view.project(location.lat,location.lon);
-  const marker=document.createElement('div');
-  marker.className='estate-marker';
-  marker.style.left=`${point.x}px`;
-  marker.style.top=`${point.y}px`;
-  marker.innerHTML='<span>◆</span><b>Tenuta Baiamonte</b>';
-  $('#map').appendChild(marker);
+  if(!estateMarker){estateMarker=document.createElement('div');estateMarker.className='estate-marker';estateMarker.innerHTML='<span>◆</span><b>Tenuta Baiamonte</b>';$('#map').appendChild(estateMarker)}
+  estateMarker.style.left=`${point.x}px`;
+  estateMarker.style.top=`${point.y}px`;
 }
 
-function addAircraftMarker(view,item){
+function updateAircraftMarker(view,item,key){
   const point=view.project(item.lat,item.lon),map=$('#map');
-  if(point.x<0||point.y<0||point.x>map.clientWidth||point.y>map.clientHeight)return;
-  const marker=document.createElement('div');
-  marker.className='plane';
-  if(item.source==='ADSBHub')marker.classList.add('adsbhub-target');
+  if(point.x<0||point.y<0||point.x>map.clientWidth||point.y>map.clientHeight){if(planeNodes[key]){planeNodes[key].remove();delete planeNodes[key]}return null}
+  const marker=planeNodes[key]||document.createElement('div');
+  marker.className=`plane ${item.source==='ADSBHub'?'adsbhub-target':''}`;
+  if(!planeNodes[key]){marker.innerHTML=`<span class="plane-icon">${BaiamonteAircraftVisual.icon}</span><span class="plane-label"></span>`;map.appendChild(marker);planeNodes[key]=marker}
   marker.style.left=`${point.x}px`;
   marker.style.top=`${point.y}px`;
-  marker.innerHTML=`<span class="plane-icon">${BaiamonteAircraftVisual.icon}</span><span class="plane-label"></span>`;
   const band=BaiamonteAircraftVisual.apply(marker,item.altitude,item.track);
   marker.title=`${item.flight||String(item.hex||'Unknown').toUpperCase()} · ${item.source||'Local receiver'} · ${fmt(item.altitude)} ft · ${band.label}`;
   marker.querySelector('.plane-label').textContent=item.flight||String(item.hex||'Unknown').toUpperCase();
-  map.appendChild(marker);
+  return marker;
 }
 
 function render(data){
@@ -86,38 +86,41 @@ function render(data){
   const view=geoMap.render(center,positioned,data.map_style||'standard');
   renderedMapWidth=$('#map').clientWidth;
   renderedMapHeight=$('#map').clientHeight;
-  $$('.plane,.estate-marker').forEach(node=>node.remove());
   addEstateMarker(view,center);
-  positioned.forEach(item=>addAircraftMarker(view,item));
+  const livePlaneKeys={};
+  positioned.forEach((item,index)=>{const key=String(item.hex||`${item.flight||'unknown'}-${index}`).toLowerCase();if(updateAircraftMarker(view,item,key))livePlaneKeys[key]=true});
+  Object.keys(planeNodes).forEach(key=>{if(!livePlaneKeys[key]){planeNodes[key].remove();delete planeNodes[key]}});
   weatherMap.render(view,data.weather);
   $('#empty').classList.toggle('show',positioned.length===0);
   $('#fleet-count').textContent=positioned.length;
   const list=$('#flight-list');
-  list.innerHTML='';
-  if(contacts.length)contacts.slice(0,10).forEach(item=>list.appendChild(flightRow(item)));
-  else{const empty=document.createElement('div');empty.className='list-empty';empty.textContent='No positioned aircraft in range';list.appendChild(empty)}
+  const shownContacts=contacts.slice(0,10),nextListSignature=JSON.stringify(shownContacts.map(item=>[item.hex,item.flight,item.altitude,item.speed,item.track,item.distance_km,item.registration,item.aircraft_type,item.operator,item.source]));
+  if(nextListSignature!==flightListSignature){flightListSignature=nextListSignature;list.innerHTML='';if(shownContacts.length)shownContacts.forEach(item=>list.appendChild(flightRow(item)));else{const empty=document.createElement('div');empty.className='list-empty';empty.textContent='No positioned aircraft in range';list.appendChild(empty)}}
   $('#feed-light').classList.toggle('online',Boolean(data.receiver_online));
   $('#feed-status').textContent=data.receiver_online?`Local ADS-B live · ${new Date(data.generated_at*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`:'Estate receiver starting';
 }
 
 function refresh(){
   if(refreshRunning){refreshQueued=true;return}
+  clearTimeout(refreshTimer);
   refreshRunning=true;
   fetch('api/aircraft?include_miami=1',{cache:'no-store'}).then(function(response){
     if(!response.ok)throw new Error(response.status);
     return response.json();
   }).then(render).catch(function(error){$('#feed-status').textContent='ADS-B feed unavailable';$('#empty').classList.add('show');console.error(error)}).then(function(){
     refreshRunning=false;
-    if(refreshQueued&&!document.hidden){refreshQueued=false;refresh()}
+    if(refreshQueued&&!document.hidden){refreshQueued=false;refresh();return}
+    scheduleRefresh();
   });
 }
+
+function scheduleRefresh(){clearTimeout(refreshTimer);if(document.hidden)return;const seconds=Math.max(5,Math.min(60,Number(latest&&latest.refresh_seconds)||10));refreshTimer=setTimeout(refresh,seconds*1000)}
 
 let resizeTimer;
 addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>latest&&render(latest),150)});
 refresh();
-setInterval(function(){if(!document.hidden)refresh()},5000);
 setInterval(function(){
   const map=$('#map'),width=map.clientWidth,height=map.clientHeight;
   if(latest&&width>100&&height>100&&(width!==renderedMapWidth||height!==renderedMapHeight))render(latest);
 },1000);
-document.addEventListener('visibilitychange',function(){if(!document.hidden){if(latest)render(latest);refresh()}});
+document.addEventListener('visibilitychange',function(){if(document.hidden){clearTimeout(refreshTimer);return}if(latest)render(latest);refresh()});

@@ -90,6 +90,8 @@ Use **ADSBHub public IP detection → auto** for a changing external address. Ch
 
 Use **TV map aircraft size** in the add-on configuration to set aircraft targets on `/tv` and `/display` from 30% to 180%. The default is 100% for a normal browser; 120–140% is a useful starting point for a television viewed from across the room. A display can temporarily override the saved value with `?target_size=125` without changing the other screens.
 
+The **Dashboard refresh interval** and **TV refresh interval** control only how often a visible browser asks for and redraws status. The efficient defaults are 15 seconds for Home Assistant and 10 seconds for `/tv`. Raising either value reduces browser and add-on CPU use on slower hardware; it never slows dump1090 decoding, ADSBHub, FlightAware, FlightRadar24, or another sharing stream. Hidden pages stop polling automatically.
+
 Internal port `8099` is published as host port `8998` by default for the estate TV display. To use another port, open the app's **Network** section, change the host-side value beside **TV display host port**, save, and restart the app. The container and Home Assistant ingress continue to use internal port `8099`; this is expected.
 
 The TV feed contains aircraft observations only and never includes portal keys, feeder IDs, UUIDs, or sharecodes. Home Assistant ingress remains available for authenticated operators.

@@ -100,6 +100,7 @@
       this.pinchDistance = 0;
       this.tiles = container.querySelector('.geo-tiles') || document.createElement('div');
       this.tiles.className = 'geo-tiles';
+      this.renderedTiles = {};
       if (!this.tiles.parentNode) container.prepend(this.tiles);
       this.attribution = container.querySelector('.map-attribution') || document.createElement('a');
       this.attribution.className = 'map-attribution';
@@ -270,19 +271,27 @@
       const safeStyle = ['standard', 'humanitarian', 'topographic', 'dark', 'satellite'].includes(style) ? style : 'standard';
       this.tiles.dataset.style = safeStyle;
 
-      this.tiles.innerHTML = '';
+      const nextTiles = {};
       for (let tileY = minY; tileY <= maxY; tileY += 1) {
         for (let tileX = minX; tileX <= maxX; tileX += 1) {
           const wrappedX = ((tileX % tileCount) + tileCount) % tileCount;
-          const image = document.createElement('img');
-          image.alt = '';
-          image.draggable = false;
-          image.src = `api/map-tile/${safeStyle}/${zoom}/${wrappedX}/${tileY}.png`;
+          const key = `${safeStyle}/${zoom}/${wrappedX}/${tileY}`;
+          const image = this.renderedTiles[key] || document.createElement('img');
+          if (!this.renderedTiles[key]) {
+            image.alt = '';
+            image.draggable = false;
+            image.src = `api/map-tile/${key}.png`;
+            this.tiles.appendChild(image);
+          }
           image.style.left = `${tileX * TILE_SIZE - left}px`;
           image.style.top = `${tileY * TILE_SIZE - top}px`;
-          this.tiles.appendChild(image);
+          nextTiles[key] = image;
         }
       }
+      Object.keys(this.renderedTiles).forEach(key => {
+        if (!nextTiles[key] && this.renderedTiles[key].parentNode) this.renderedTiles[key].parentNode.removeChild(this.renderedTiles[key]);
+      });
+      this.renderedTiles = nextTiles;
 
       this.currentView = {
         zoom,

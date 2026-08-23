@@ -116,6 +116,12 @@ configuration:
   TV_MAP_TARGET_SIZE:
     name: TV map aircraft size
     description: Aircraft target size on /tv and /display from 30 to 180 percent. Use 100 for a normal browser or increase it for a distant television.
+  DASHBOARD_REFRESH_SECONDS:
+    name: Dashboard refresh interval
+    description: Seconds between visible Home Assistant dashboard updates. Fifteen reduces CPU use while keeping traffic current; the receiver and feeders continue at full speed.
+  TV_REFRESH_SECONDS:
+    name: TV refresh interval
+    description: Seconds between visible /tv aircraft updates. Ten is recommended; increase it on older televisions to reduce browser load without affecting data collection or sharing.
   DASHBOARD_THEME:
     name: Dashboard appearance
     description: Choose Automatic to follow the display, or force the Home Assistant dashboard to Light or Dark mode.
