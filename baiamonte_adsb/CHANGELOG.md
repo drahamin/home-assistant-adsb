@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.11
+
+- Build Bullseye-security dependencies from Debian's official archive after their packages moved out of the live security pool.
+
 ## 2.5.10
 
 - Keep anonymous OpenSky airport-board queries inside the available recent-flight window so the LICC arrivals and departures panels do not fail with a historical-flight 403.

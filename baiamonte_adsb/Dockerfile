@@ -6,6 +6,7 @@ ARG RTL_AIRBAND_SHA256=840c5f0eb368a2ea61dfb46830ed43b9c4d3371fc7cefd3a0d8fee7bb
 ARG DEBIAN_FRONTEND=noninteractive
 ADD https://github.com/rtl-airband/RTLSDR-Airband/archive/refs/tags/v${RTL_AIRBAND_VERSION}.tar.gz /tmp/rtl-airband.tar.gz
 RUN echo "${RTL_AIRBAND_SHA256}  /tmp/rtl-airband.tar.gz" | sha256sum --check \
+    && find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -i 's|http://deb.debian.org/debian-security|http://archive.debian.org/debian-security|g' {} + \
     && apt-get update \
     && apt-get install -y --no-install-recommends cmake g++ make pkg-config libmp3lame-dev libshout3-dev libconfig++-dev libfftw3-dev librtlsdr-dev \
     && mkdir -p /tmp/RTLSDR-Airband-${RTL_AIRBAND_VERSION} \
@@ -23,7 +24,8 @@ ENV TZ=UTC \
     BAIAMONTE_DASHBOARD_PORT=8099
 
 ADD https://github.com/hassio-addons/bashio/archive/v0.15.0.tar.gz /tmp/bashio.tar.gz
-RUN apt-get update \
+RUN find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -i 's|http://deb.debian.org/debian-security|http://archive.debian.org/debian-security|g' {} + \
+    && apt-get update \
     && apt-get install -y --no-install-recommends bash ca-certificates curl jq python3 icecast2 libmp3lame0 libshout3 libconfig++9v5 libfftw3-double3 librtlsdr0 netcat-openbsd \
     && mkdir -p /tmp/bashio \
     && tar zxf /tmp/bashio.tar.gz --strip 1 -C /tmp/bashio \
