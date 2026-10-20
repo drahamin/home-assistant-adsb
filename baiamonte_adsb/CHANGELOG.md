@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.10
+
+- Keep anonymous OpenSky airport-board queries inside the available recent-flight window so the LICC arrivals and departures panels do not fail with a historical-flight 403.
+
 ## 2.5.9
 
 - Reduces dashboard and TV CPU use by reusing unchanged map tiles, aircraft markers, and TV list rows instead of rebuilding them on every update.

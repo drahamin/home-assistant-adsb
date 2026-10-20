@@ -215,6 +215,16 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(board["arrivals"][0]["ident"], "RYR43ET")
         self.assertFalse(board["live_status"])
 
+    def test_opensky_airport_board_stays_within_anonymous_history_window(self):
+        now = 2_000_000_000
+        expected_begin = now - dashboard.OPENSKY_ANONYMOUS_WINDOW_SECONDS
+        with patch.object(dashboard.time, "time", return_value=now), patch.object(dashboard, "fetch_json", return_value=[]) as fetch:
+            dashboard.airport_board("LICC")
+        self.assertEqual(fetch.call_count, 2)
+        for request in fetch.call_args_list:
+            self.assertIn(f"begin={expected_begin}", request.args[1])
+            self.assertIn(f"end={now}", request.args[1])
+
     def test_current_rainviewer_hash_path_is_valid(self):
         self.assertTrue(dashboard.valid_weather_tile_path("v2/radar/25dbbe425e29/256/7/67/48/2/1_1.png"))
 

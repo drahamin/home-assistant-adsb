@@ -98,6 +98,10 @@ MIAMI_PROXY_CACHE: dict[str, object] = {
 }
 ENRICHMENT_CACHE_SECONDS = 3600
 AIRPORT_CACHE_SECONDS = 120
+# OpenSky rejects anonymous airport-flight requests whose start time is more
+# than roughly six hours old. Keep a small margin so request/processing time
+# cannot push the query across that boundary.
+OPENSKY_ANONYMOUS_WINDOW_SECONDS = 6 * 3600 - 5 * 60
 
 
 def cached_json_file(path: Path) -> object:
@@ -504,7 +508,7 @@ def adsbdb_enrichment(icao: str, callsign: str) -> dict:
 
 def opensky_movements(airport: str, movement: str) -> list[dict]:
     now = int(time.time())
-    begin = max(now - 12 * 3600, now - now % 86400)
+    begin = now - OPENSKY_ANONYMOUS_WINDOW_SECONDS
     endpoint = "arrival" if movement == "arrivals" else "departure"
     try:
         payload = fetch_json(f"opensky:{airport}:{endpoint}", f"https://opensky-network.org/api/flights/{endpoint}?airport={quote(airport)}&begin={begin}&end={now}", AIRPORT_CACHE_SECONDS)
